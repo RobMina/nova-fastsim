@@ -1,0 +1,19 @@
+nova-fastsim
+Copyright 2026 Rob Mina and contributors
+
+Licensed under the Apache License, Version 2.0 (LICENSE).
+
+This package is an experiment shell for NOvA ND JAX simulation and calibration. It
+depends on (and does not vendor) shared generators and libraries:
+
+- BdNMC / bdnmc-jax (RobMina/BdNMC)
+- ldmgen (when published)
+- bdnmc-nova (RobMina/bdnmc-nova) — HEPEVT / TextFileGen file writers and UVA two-stage jobs
+- hep-simlib / hep-simbench / hep-endpoints / cryjax (as those land in the NOvA track)
+
+NOvASoft TextFileGen is stock collaboration software; this repository orchestrates
+jobs that call it and does not reimplement it.
+
+NOvA-internal inputs (geometry, FCLs, conditions, calibration tables, data results)
+are not part of this repository. They belong in the separate private bundle
+nova-fastsim-inputs when that exists.
