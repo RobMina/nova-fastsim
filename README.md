@@ -15,7 +15,7 @@ or results.
 | Piece | State |
 |---|---|
 | `core/` profile + `NOVA_DEVICE_FLOAT` | present; synthetic pytest |
-| `ldm/` thin orchestration | **phase 2**: `python -m novafastsim_ldm` → bdnmc-nova generate/submit; optional ldmgen bridge |
+| `ldm/` thin orchestration | **phase 2**: `python -m novafastsim_ldm` → bdnmc-nova generate/submit; optional [`ldmgen`](https://github.com/RobMina/ldmgen) (`[ldmgen]` extra) |
 | `calib/`, `beamline/` | package stubs |
 | `examples/` | CLI + UVA two-stage docs |
 | `benchmarks/hepsimbench_nd.py` | hep-simbench stub (status / synthetic) |
@@ -67,11 +67,12 @@ python3 -m venv .venv && .venv/bin/pip install -q -e core -e calib -e ldm -e bea
 For generation / submit against a real site:
 
 ```bash
-.venv/bin/pip install -q -e 'ldm[chains]'   # bdnmc-nova + bdnmc-jax
+.venv/bin/pip install -q -e 'ldm[chains,ldmgen]'   # bdnmc-nova + bdnmc-jax + ldmgen
 cp site.env.example site.env   # fill paths
 .venv/bin/python -m novafastsim_ldm generate --trials 1024
-.venv/bin/python -m novafastsim_ldm ldmgen-status   # public ldmgen not required yet
+.venv/bin/python -m novafastsim_ldm ldmgen-status
 ```
+
 
 ## Licence
 
