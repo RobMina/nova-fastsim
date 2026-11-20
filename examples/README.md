@@ -1,54 +1,52 @@
-# Examples — use the existing bdnmc-nova / UVA chain
+# Examples — LDM chain via `novafastsim_ldm`
 
-v0 does not ship a new detector simulator. The proven path is:
+Phase 2 wires a thin CLI over the proven bdnmc-nova / UVA path. Still no new
+detector simulator in this repository.
 
 ```text
 BdNMC (JAX, bdnmc-jax image)
-  → bdnmc_nova.generate / textfilegen   # writes HEPEVT for TextFileGen
-  → NOvASoft TextFileGen (stock art)    # SL7 image; MCTruth → G4 → reco
+  → python -m novafastsim_ldm generate     # → bdnmc_nova.generate → events.txt
+  → [optional] ldmgen convert / export     # when ldmgen is published/installed
+  → python -m novafastsim_ldm submit       # → bdnmc_nova.jobspec → stock TextFileGen
 ```
 
-That two-stage job is already packaged in
-[`RobMina/bdnmc-nova`](https://github.com/RobMina/bdnmc-nova):
+## Orchestrate, do not rewrite
+
+- **TextFileGen** = stock NOvASoft art module. Never reimplemented here.
+- Generators stay in BdNMC / bdnmc-nova / (future) ldmgen.
+- Private ND frame / FCLs: UVA shared area today; later `nova-fastsim-inputs`
+  ([`setup/README.md`](../setup/README.md)).
+- Two images: JAX host + NOvASoft SL7.
+
+## Site.env
+
+Copy [`site.env.example`](../site.env.example) → `site.env` and fill paths as the
+job sees them. Required names fail closed via `novafastsim.site.require`.
+
+## Commands
+
+```bash
+pip install -e core -e 'ldm[chains]'
+python -m novafastsim_ldm describe
+python -m novafastsim_ldm ldmgen-status
+
+# generation only (needs bdnmc-jax + private frame JSON)
+python -m novafastsim_ldm generate --trials 65536 --out events.txt --summary summary.json
+
+# dry-run: write the embedded two-stage job script (mode 0700; contains private frame)
+python -m novafastsim_ldm submit --script-out /tmp/nova-fastsim-job.sh
+
+# real submit (hep-endpoints site settings: HEPEP_*)
+python -m novafastsim_ldm submit --gpus 1
+```
+
+Direct bdnmc-nova entry points remain valid; this CLI only fills site defaults:
 
 | Piece | Where |
 |---|---|
 | Frame + HEPEVT writer | `bdnmc_nova.frame`, `bdnmc_nova.textfilegen` |
 | Stage-1 generate | `python -m bdnmc_nova.generate …` |
-| One-job wrapper | `jobs/two_stage.sh` (`bdnmc_nova/data/two_stage.sh`) |
-| hep-endpoints submit | `python -m bdnmc_nova.jobspec submit …` |
-| Collaborator area (UVA) | `$BDNMC_SHARED` (see private workspace wiki `<private-nova-wiki>/bdnmc/uva-shared-area`) |
+| Job wrapper | `jobs/two_stage.sh` / `python -m bdnmc_nova.jobspec …` |
+| UVA collaborator area | `$BDNMC_SHARED` |
 
-## Orchestrate, do not rewrite
-
-- **TextFileGen** = stock NOvASoft. Do not reimplement it in JAX or in this repo.
-- Private ND frame / FCLs stay out of the public tree (future `nova-fastsim-inputs`).
-- Two images: JAX host (`container/nova-fastsim-jax.def` here, or `bdnmc-jax`) plus NOvASoft SL7.
-
-## Minimal pointer (after site.env)
-
-Fill `site.env` from `site.env.example`, then on a host with Apptainer + the shared area:
-
-```bash
-# Generation + TextFileGen sim as one Slurm job (bdnmc-nova API — illustrative)
-python -m bdnmc_nova.jobspec submit "$CARD" \
-  --handle nova-fastsim-example \
-  --endpoint slurm_ssh \
-  --config "$BDNMC_NOVA_CONFIG" \
-  --src "$BDNMC_NOVA_SRC" \
-  --gen-image "$GEN_IMAGE" \
-  --nova-image "$NOVA_IMAGE" \
-  --nova-setup "$NOVA_SETUP" \
-  --nova-fcl "$NOVA_FCL" \
-  --gpus 1
-```
-
-Or the shell form from bdnmc-nova:
-
-```bash
-GEN_IMAGE=… NOVA_IMAGE=… NOVA_SETUP=… NOVA_FCL=… CARD=… \
-  BDNMC_NOVA_CONFIG=… GPU=1 bash "$BDNMC_NOVA_SRC/jobs/two_stage.sh"
-```
-
-Thin `novafastsim_ldm` wrappers that read `site.env` and call the same entry points
-are planned for a later milestone; this example stays a documented pointer.
+Also see [`uva_two_stage.md`](uva_two_stage.md).
