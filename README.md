@@ -16,9 +16,9 @@ or results.
 |---|---|
 | `core/` profile + `NOVA_DEVICE_FLOAT` | present; synthetic pytest |
 | `ldm/` thin orchestration | **phase 2+**: `novafastsim_ldm` → bdnmc-nova; [`ldmgen`](https://github.com/RobMina/ldmgen) library bridge (`[ldmgen]` extra) |
-| `core/` inputs | `python -m novafastsim.inputs validate|check` for `nova-fastsim-inputs` manifests |
+| `core/` inputs | `python -m novafastsim.inputs` `validate` / `check` for `nova-fastsim-inputs` manifests |
 | `calib/`, `beamline/` | package stubs |
-| `examples/` | CLI + UVA two-stage docs |
+| `examples/` | CLI + site two-stage docs |
 | `benchmarks/hepsimbench_nd.py` | hep-simbench stub (`novafastsim[bench]`) |
 | `container/nova-fastsim-jax.def` | stub (JAX host — **not** SL7; no SIF build yet) |
 | `nova-fastsim-inputs` | documented + schema checker; first release not cut |
@@ -55,13 +55,16 @@ Two-image composition remains mandatory: JAX needs glibc ≥ 2.27; NOvASoft runs
 
 Every public path will support **float32 and float64**. Set `NOVA_DEVICE_FLOAT` to
 `float32` or `float64`; unset defaults to `float64`. Other values fail closed.
+`novafastsim.dtype.resolve()` reads the environment lazily (after `site.env`);
+`submit` / `generate` always apply that resolved precision. Use
+`dtype.apply_jax_x64()` so JAX’s `jax_enable_x64` matches.
 
 ## Quickstart
 
 ```bash
 git clone https://github.com/RobMina/nova-fastsim.git && cd nova-fastsim
-python3 -m venv .venv && .venv/bin/pip install -q -e core -e calib -e ldm -e beamline
-.venv/bin/python -m pytest -q tests
+python3 -m venv .venv && .venv/bin/pip install -q -e 'core[test]' -e calib -e ldm -e beamline
+.venv/bin/python -m pytest -q
 .venv/bin/python -m novafastsim_ldm describe
 ```
 
