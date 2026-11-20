@@ -18,7 +18,7 @@ def status() -> dict:
     except ImportError:
         return {
             "available": False,
-            "note": "pip install 'hep-simbench @ git+https://github.com/RobMina/hep-simbench.git'",
+            "note": "pip install -e 'core[bench]' (commit-pinned RobMina/hep-simbench)",
         }
 
 
