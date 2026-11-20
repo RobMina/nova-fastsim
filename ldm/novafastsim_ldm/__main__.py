@@ -1,4 +1,4 @@
-"""CLI: python -m novafastsim_ldm {describe,generate,submit,ldmgen-status,ldmgen-export,...}"""
+"""CLI: python -m novafastsim_ldm {describe,generate,submit,ldmgen-*,...}"""
 
 from __future__ import annotations
 
@@ -49,16 +49,22 @@ def main(argv=None):
     p.add_argument("--script-out", type=Path,
                    help="write the job script only (dry-run; embeds private frame — mode 0700)")
 
-    sub.add_parser("ldmgen-status", help="whether optional ldmgen is importable")
+    sub.add_parser("ldmgen-status", help="whether optional ldmgen / bdnmc-nova are importable")
 
-    p = sub.add_parser("ldmgen-export", help="ldmgen export nova (requires ldmgen installed)")
+    p = sub.add_parser("ldmgen-info", help="summarise an ldmgen/1 HDF5 record")
+    p.add_argument("record", type=Path)
+
+    p = sub.add_parser("ldmgen-export", help="ldmgen.export.to_nova (needs ldmgen + bdnmc-nova)")
     p.add_argument("record", type=Path)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--config", type=Path)
+    p.add_argument("--max-events", type=int, default=-1)
+    p.add_argument("--summary", type=Path)
 
-    p = sub.add_parser("ldmgen-convert-jax", help="ldmgen convert bdnmc-jax (requires ldmgen)")
+    p = sub.add_parser("ldmgen-convert-jax", help="BdNMC JAX HDF5 → ldmgen/1 (needs ldmgen)")
     p.add_argument("hdf5", type=Path)
     p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--detector", default="nova-nd")
 
     args = ap.parse_args(argv)
     if args.cmd != "describe":
@@ -79,11 +85,18 @@ def main(argv=None):
     if args.cmd == "ldmgen-status":
         print(json.dumps(ldmgen_bridge.status(), indent=1))
         return 0
+    if args.cmd == "ldmgen-info":
+        print(json.dumps(ldmgen_bridge.info(args.record), indent=1, default=str))
+        return 0
     if args.cmd == "ldmgen-export":
-        ldmgen_bridge.export_nova(args.record, args.out, config=args.config)
+        info = ldmgen_bridge.export_nova(
+            args.record, args.out, config=args.config, max_events=args.max_events, summary=args.summary)
+        print(json.dumps(info, indent=1, default=str))
         return 0
     if args.cmd == "ldmgen-convert-jax":
-        ldmgen_bridge.convert_bdnmc_jax(args.hdf5, args.out)
+        print(json.dumps(
+            ldmgen_bridge.convert_bdnmc_jax(args.hdf5, args.out, detector=args.detector),
+            indent=1, default=str))
         return 0
     ap.error(f"unknown command {args.cmd}")
     return 2

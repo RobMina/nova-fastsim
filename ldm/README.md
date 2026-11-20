@@ -15,7 +15,12 @@ python -m novafastsim_ldm describe
 python -m novafastsim_ldm generate --trials 1024 --out events.txt
 python -m novafastsim_ldm submit --script-out /tmp/job.sh   # dry-run script
 python -m novafastsim_ldm ldmgen-status
+python -m novafastsim_ldm ldmgen-info rec.h5          # library API
+python -m novafastsim_ldm ldmgen-export rec.h5 --out events.txt --config frame.json
 ```
+
+The bridge calls `ldmgen.adapters.bdnmc` / `ldmgen.export.to_nova` directly (not CLI argv).
+
 
 Site paths come from `site.env` (see repo `site.env.example`). Details:
 [`../examples/README.md`](../examples/README.md).
