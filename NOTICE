@@ -7,7 +7,7 @@ This package is an experiment shell for NOvA ND JAX simulation and calibration. 
 depends on (and does not vendor) shared generators and libraries:
 
 - BdNMC / bdnmc-jax (RobMina/BdNMC)
-- ldmgen (when published)
+- ldmgen (https://github.com/RobMina/ldmgen)
 - bdnmc-nova (RobMina/bdnmc-nova) — HEPEVT / TextFileGen file writers and UVA two-stage jobs
 - hep-simlib / hep-simbench / hep-endpoints / cryjax (as those land in the NOvA track)
 
