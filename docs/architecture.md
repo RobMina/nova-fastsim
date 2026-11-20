@@ -16,7 +16,7 @@ Phase-2 LDM path (orchestrate only):
 novafastsim_ldm generate  →  bdnmc_nova.generate (BdNMC JAX → events.txt)
         │ optional
         ▼
-ldmgen convert / export   →  still sinks through bdnmc_nova.textfilegen
+ldmgen convert / export   →  RobMina/ldmgen; still sinks through bdnmc_nova.textfilegen
         │
 novafastsim_ldm submit    →  bdnmc_nova.jobspec → stock NOvASoft TextFileGen (SL7)
 ```

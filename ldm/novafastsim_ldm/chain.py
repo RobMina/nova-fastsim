@@ -24,7 +24,7 @@ class PathInfo:
 PATH = (
     PathInfo("generate", "bdnmc-nova + bdnmc-jax",
              "BdNMC JAX → HEPEVT/TextFileGen file (bdnmc_nova.generate / textfilegen)"),
-    PathInfo("ldmgen", "ldmgen (optional, not yet public)",
+    PathInfo("ldmgen", "ldmgen (optional; RobMina/ldmgen)",
              "ldmgen/1 HDF5 analysis record; export nova still calls bdnmc_nova.textfilegen"),
     PathInfo("simulate", "NOvASoft TextFileGen (stock)",
              "SL7 art job: HEPEVT → MCTruth → G4 → reco; two-image with JAX host"),
