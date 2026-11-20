@@ -15,12 +15,13 @@ or results.
 | Piece | State |
 |---|---|
 | `core/` profile + `NOVA_DEVICE_FLOAT` | present; synthetic pytest |
-| `ldm/` thin orchestration | **phase 2**: `python -m novafastsim_ldm` → bdnmc-nova generate/submit; optional [`ldmgen`](https://github.com/RobMina/ldmgen) (`[ldmgen]` extra) |
+| `ldm/` thin orchestration | **phase 2+**: `novafastsim_ldm` → bdnmc-nova; [`ldmgen`](https://github.com/RobMina/ldmgen) library bridge (`[ldmgen]` extra) |
+| `core/` inputs | `python -m novafastsim.inputs validate|check` for `nova-fastsim-inputs` manifests |
 | `calib/`, `beamline/` | package stubs |
 | `examples/` | CLI + UVA two-stage docs |
-| `benchmarks/hepsimbench_nd.py` | hep-simbench stub (status / synthetic) |
+| `benchmarks/hepsimbench_nd.py` | hep-simbench stub (`novafastsim[bench]`) |
 | `container/nova-fastsim-jax.def` | stub (JAX host — **not** SL7; no SIF build yet) |
-| `nova-fastsim-inputs` | documented; first release not cut |
+| `nova-fastsim-inputs` | documented + schema checker; first release not cut |
 | On-device ND response | later phase |
 
 Canonical plan (private workspace wiki): `<private-nova-wiki>/sim/nova-fastsim-plan`.

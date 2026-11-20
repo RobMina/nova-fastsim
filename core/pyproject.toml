@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "novafastsim"
-version = "0.0.1"
-description = "NOvA ND JAX fast-simulation core: experiment profile, dtype and site helpers"
+version = "0.0.2"
+description = "NOvA ND JAX fast-simulation core: experiment profile, dtype, site helpers, inputs manifest"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 dependencies = ["numpy"]
@@ -13,6 +13,8 @@ dependencies = ["numpy"]
 [project.optional-dependencies]
 jax = ["jax"]
 hepsim = ["hep-simlib @ git+https://github.com/RobMina/hep-simlib.git"]
+# hep-simbench for benchmarks/hepsimbench_nd.py synthetic dry-run
+bench = ["hep-simbench @ git+https://github.com/RobMina/hep-simbench.git"]
 test = ["pytest"]
 
 [tool.setuptools.packages.find]

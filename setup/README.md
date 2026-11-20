@@ -38,12 +38,19 @@ mu2e-fastsim `setup/RELEASE.example.json`): relative `path`, `sha256`, `size_byt
 `provenance`, `redistribution: nova-internal`. Real manifests must not be committed
 here.
 
-## Verify (when a release exists)
+## Verify
+
+Schema check (no private files; works on the example):
+
+```bash
+python -m novafastsim.inputs validate setup/RELEASE.example.json
+```
+
+Against a release root (placeholders in the example report `missing`):
 
 ```bash
 export NOVA_FASTSIM_INPUTS=/path/to/nova-fastsim-inputs-vN
-# checker lands with the first release (novafastsim.inputs); until then verify
-# sha256sums from the private manifest by hand.
+python -m novafastsim.inputs check /path/to/manifest.json --root "$NOVA_FASTSIM_INPUTS"
 ```
 
 ## Requesting access
