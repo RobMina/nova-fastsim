@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from novafastsim import site
+from novafastsim import dtype, site
 
 from . import chain, generate, ldmgen_bridge, submit
 
@@ -17,6 +17,8 @@ def _load_site(args):
         site.load_dotenv(args.site_env)
     elif Path("site.env").is_file():
         site.load_dotenv("site.env")
+    # Validate dtype after site.env so a bad value fails here, not at import.
+    dtype.resolve()
 
 
 def main(argv=None):
@@ -37,17 +39,23 @@ def main(argv=None):
     p.add_argument("--summary", type=Path)
     p.add_argument("--trials", type=int)
     p.add_argument("--channel", default="")
+    p.add_argument("--dry-run", action="store_true", help="print resolved argv; do not run BdNMC")
 
     p = sub.add_parser("submit", help="submit two-stage job via bdnmc_nova.jobspec")
     p.add_argument("--card", type=Path)
+    p.add_argument("--config", type=Path)
     p.add_argument("--handle")
     p.add_argument("--endpoint", help="hependpoints name (default NOVAFS_ENDPOINT)")
     p.add_argument("--stages", default="gen,sim", choices=("gen,sim", "gen", "sim"))
     p.add_argument("--gpus", type=int)
     p.add_argument("--precision", choices=("float32", "float64"))
     p.add_argument("--trials", type=int)
+    p.add_argument("--events", type=Path, help="sim-only: local TextFileGen file to embed")
+    p.add_argument("--events-at", default="", help="sim-only: TextFileGen path as seen on the site")
+    p.add_argument("--max-events", type=int, help="sim-only: embed only the first N events of --events")
     p.add_argument("--script-out", type=Path,
                    help="write the job script only (dry-run; embeds private frame — mode 0700)")
+    p.add_argument("--dry-run", action="store_true", help="validate site and print argv; do not submit")
 
     sub.add_parser("ldmgen-status", help="whether optional ldmgen / bdnmc-nova are importable")
 
@@ -74,13 +82,21 @@ def main(argv=None):
         print(chain.describe())
         return 0
     if args.cmd == "generate":
-        generate.run(card=args.card, out=args.out, config=args.config, hdf5=args.hdf5,
-                     summary=args.summary, trials=args.trials, channel=args.channel or None)
+        result = generate.run(
+            card=args.card, out=args.out, config=args.config, hdf5=args.hdf5,
+            summary=args.summary, trials=args.trials, channel=args.channel or None,
+            dry_run=args.dry_run)
+        if args.dry_run:
+            print(json.dumps(result, indent=1, default=str))
         return 0
     if args.cmd == "submit":
-        submit.run(card=args.card, handle=args.handle, endpoint=args.endpoint, stages=args.stages,
-                   gpus=args.gpus, precision=args.precision, trials=args.trials,
-                   dry_run_script=args.script_out)
+        result = submit.run(
+            card=args.card, config=args.config, handle=args.handle, endpoint=args.endpoint,
+            stages=args.stages, gpus=args.gpus, precision=args.precision, trials=args.trials,
+            events=args.events, events_at=args.events_at or None, max_events=args.max_events,
+            dry_run_script=args.script_out, dry_run=args.dry_run)
+        if args.dry_run:
+            print(json.dumps(result, indent=1, default=str))
         return 0
     if args.cmd == "ldmgen-status":
         print(json.dumps(ldmgen_bridge.status(), indent=1))
