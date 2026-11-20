@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+LDMGEN_INSTALL = (
+    "pip install 'novafastsim-ldm[ldmgen]' "
+    "(pins https://github.com/RobMina/ldmgen)"
+)
+
 
 def require_bdnmc_nova():
     try:
@@ -27,7 +32,6 @@ def require_ldmgen():
     if ldmgen_available():
         return True
     raise ImportError(
-        "ldmgen is not installed. It is not on GitHub yet (local ~/ldm-generators). "
-        "When published, install it and re-run; until then use "
-        "`python -m novafastsim_ldm generate` (bdnmc-nova HEPEVT path)."
+        f"ldmgen is not installed. {LDMGEN_INSTALL}. "
+        "Until then use `python -m novafastsim_ldm generate` (bdnmc-nova HEPEVT path)."
     )

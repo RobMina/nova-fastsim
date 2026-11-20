@@ -6,14 +6,14 @@ detector simulator in this repository.
 ```text
 BdNMC (JAX, bdnmc-jax image)
   → python -m novafastsim_ldm generate     # → bdnmc_nova.generate → events.txt
-  → [optional] ldmgen convert / export     # when ldmgen is published/installed
+  → [optional] ldmgen convert / export     # RobMina/ldmgen; pip install 'novafastsim-ldm[ldmgen]'
   → python -m novafastsim_ldm submit       # → bdnmc_nova.jobspec → stock TextFileGen
 ```
 
 ## Orchestrate, do not rewrite
 
 - **TextFileGen** = stock NOvASoft art module. Never reimplemented here.
-- Generators stay in BdNMC / bdnmc-nova / (future) ldmgen.
+- Generators stay in BdNMC / bdnmc-nova / [`ldmgen`](https://github.com/RobMina/ldmgen).
 - Private ND frame / FCLs: UVA shared area today; later `nova-fastsim-inputs`
   ([`setup/README.md`](../setup/README.md)).
 - Two images: JAX host + NOvASoft SL7.
@@ -26,7 +26,7 @@ job sees them. Required names fail closed via `novafastsim.site.require`.
 ## Commands
 
 ```bash
-pip install -e core -e 'ldm[chains]'
+pip install -e core -e 'ldm[chains,ldmgen]'
 python -m novafastsim_ldm describe
 python -m novafastsim_ldm ldmgen-status
 

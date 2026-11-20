@@ -1,7 +1,7 @@
 """Optional ldmgen hop: convert / export nova when ldmgen is installed.
 
-Public GitHub for ldmgen is not ready yet; until then this module reports that
-clearly and the HEPEVT path stays on bdnmc_nova.generate.
+Public package: https://github.com/RobMina/ldmgen (pin via novafastsim-ldm[ldmgen]).
+``export nova`` still sinks through bdnmc_nova.textfilegen.
 """
 
 from __future__ import annotations
@@ -37,9 +37,14 @@ def export_nova(record: Path, out: Path, config: Path | None = None):
 
 def status() -> dict:
     """Whether ldmgen can be used from this environment."""
+    available = deps.ldmgen_available()
     return {
-        "ldmgen_available": deps.ldmgen_available(),
-        "note": ("install local ~/ldm-generators or the future public package"
-                 if not deps.ldmgen_available()
-                 else "ldmgen importable; export nova still sinks through bdnmc_nova.textfilegen"),
+        "ldmgen_available": available,
+        "repo": "https://github.com/RobMina/ldmgen",
+        "install": "pip install 'novafastsim-ldm[ldmgen]'",
+        "note": (
+            "ldmgen importable; export nova still sinks through bdnmc_nova.textfilegen"
+            if available
+            else "not installed in this env; " + deps.LDMGEN_INSTALL
+        ),
     }
