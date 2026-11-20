@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "novafastsim-ldm"
-version = "0.0.2"
+version = "0.0.3"
 description = "Thin LDM orchestration for nova-fastsim over BdNMC / ldmgen / bdnmc-nova"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
@@ -13,8 +13,13 @@ dependencies = ["novafastsim"]
 [project.optional-dependencies]
 # bdnmc-nova pulls bdnmc-jax; needed for generate/submit
 chains = ["bdnmc-nova @ git+https://github.com/RobMina/bdnmc-nova.git"]
-# ldmgen is not on GitHub yet; when published, pin it here and install with [ldmgen]
-# ldmgen = ["ldmgen @ git+https://github.com/RobMina/ldmgen.git"]
+# public ldmgen (RobMina/ldmgen); convert/export nova still sinks through bdnmc_nova.textfilegen
+ldmgen = ["ldmgen @ git+https://github.com/RobMina/ldmgen.git@c2a40426cdb3656856b373a5828152ef1de50b2b"]
+# both generator-facing extras (explicit; avoid recursive self-extra)
+all = [
+    "bdnmc-nova @ git+https://github.com/RobMina/bdnmc-nova.git",
+    "ldmgen @ git+https://github.com/RobMina/ldmgen.git@c2a40426cdb3656856b373a5828152ef1de50b2b",
+]
 test = ["pytest"]
 
 [tool.setuptools.packages.find]

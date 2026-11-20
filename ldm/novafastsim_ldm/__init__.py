@@ -6,4 +6,4 @@ Does not reimplement TextFileGen. Generators stay external.
 from . import chain
 
 __all__ = ["chain"]
-__version__ = "0.0.2"
+__version__ = "0.0.3"

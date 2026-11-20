@@ -25,12 +25,14 @@ def test_describe_cli():
     assert "bdnmc-nova" in proc.stdout
 
 
-def test_ldmgen_status_without_package():
+def test_ldmgen_status_reports_public_repo():
     from novafastsim_ldm import ldmgen_bridge
 
     st = ldmgen_bridge.status()
     assert "ldmgen_available" in st
     assert isinstance(st["ldmgen_available"], bool)
+    assert st["repo"] == "https://github.com/RobMina/ldmgen"
+    assert "ldmgen" in st["install"]
 
 
 def test_require_bdnmc_nova_message():
