@@ -1,0 +1,41 @@
+Bootstrap: docker
+From: python:3.12-slim-bookworm
+
+%labels
+    org.opencontainers.image.title nova-fastsim-jax
+    org.opencontainers.image.source https://github.com/RobMina/nova-fastsim
+    org.opencontainers.image.licenses Apache-2.0
+
+%help
+    Stub Apptainer definition for the nova-fastsim JAX host image (glibc >= 2.27).
+    Not SL7 — NOvASoft stays in its own SL7 image; two-image composition is required.
+    Do not build a large SIF from this stub until package contents and pins are ready.
+    CPU/GPU: JAX pip wheels; on a GPU node run with --nv.
+
+%files
+    . /opt/nova-fastsim
+
+%environment
+    export XLA_PYTHON_CLIENT_PREALLOCATE=false
+    export JAX_ENABLE_X64=1
+    export MPLBACKEND=Agg
+    export PYTHONDONTWRITEBYTECODE=1
+    export NOVA_DEVICE_FLOAT=float64
+
+%post
+    set -e
+    export PIP_NO_CACHE_DIR=1
+    apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates \
+        && rm -rf /var/lib/apt/lists/*
+    python -m pip install -q --upgrade pip
+    for p in core calib ldm beamline; do
+        python -m pip install -q --no-deps /opt/nova-fastsim/$p
+    done
+    # JAX / hep-simlib pins: fill when the first real image build is authorized.
+    find / -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
+
+%runscript
+    exec "$@"
+
+%test
+    python -c "import novafastsim; print(novafastsim.__version__)"

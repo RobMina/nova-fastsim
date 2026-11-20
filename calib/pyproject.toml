@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "novafastsim-calib"
+version = "0.0.1"
+description = "NOvA ND calibration libraries for nova-fastsim (hep-simlib banks under the nova profile)"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+dependencies = ["novafastsim"]
+
+[tool.setuptools.packages.find]
+include = ["novafastsim_calib*"]

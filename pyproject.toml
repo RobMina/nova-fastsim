@@ -1,0 +1,6 @@
+# Umbrella marker for editable installs of the four packages.
+# Prefer: pip install -e core -e calib -e ldm -e beamline
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["core", "calib", "ldm", "beamline"]
