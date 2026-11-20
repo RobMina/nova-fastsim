@@ -16,4 +16,7 @@ jobs that call it and does not reimplement it.
 
 NOvA-internal inputs (geometry, FCLs, conditions, calibration tables, data results)
 are not part of this repository. They belong in the separate private bundle
-nova-fastsim-inputs when that exists.
+nova-fastsim-inputs when that exists (see setup/README.md).
+
+Optional runtime dependencies (not vendored): RobMina/bdnmc-nova, RobMina/hep-simbench,
+and ldmgen when published.
