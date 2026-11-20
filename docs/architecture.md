@@ -18,7 +18,17 @@ novafastsim_ldm generate  →  bdnmc_nova.generate (BdNMC JAX → events.txt)
         ▼
 ldmgen convert / export   →  RobMina/ldmgen; still sinks through bdnmc_nova.textfilegen
         │
+novafastsim_ldm events-*  →  validate / head HEPEVT TextFileGen *input* text
+        │
 novafastsim_ldm submit    →  bdnmc_nova.jobspec → stock NOvASoft TextFileGen (SL7)
+```
+
+Phase-2 calib path (parallel; scaffolding):
+
+```text
+novafastsim_calib describe/status/ensure-dirs
+        → nova profile bank layout under NOVA_LIBRARY_CACHE
+        → optional scint-fibre-fastsim probe (NOvA APD stub lives there)
 ```
 
 Event record (agreed): keep `ldmgen/1` HDF5 for analysis; public = HepMC3 + LdmHepMC;
