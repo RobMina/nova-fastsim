@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "novafastsim-ldm"
-version = "0.0.4"
+version = "0.0.5"
 description = "Thin LDM orchestration for nova-fastsim over BdNMC / ldmgen / bdnmc-nova"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.11"  # bdnmc-nova ([chains]) needs 3.11
@@ -13,13 +13,13 @@ dependencies = ["novafastsim"]
 [project.optional-dependencies]
 # bdnmc-nova pulls bdnmc-jax; needed for generate/submit. Pins are commits on each repo's main;
 # bump them together and check they are reachable from a branch or tag (history rewrites orphan SHAs).
-chains = ["bdnmc-nova @ git+https://github.com/RobMina/bdnmc-nova.git@4ae7e8c30ef491df65a2511349e5d660f666b371"]
+chains = ["bdnmc-nova @ git+https://github.com/RobMina/bdnmc-nova.git@0f872b84c2825467895bd0c37822ca4b61adb960"]
 # public ldmgen (RobMina/ldmgen); convert/export nova still sinks through the bdnmc-nova HEPEVT writer
-ldmgen = ["ldmgen @ git+https://github.com/RobMina/ldmgen.git@34103651b57b26bdbbba27b6c4cc1f1c2df3721c"]
+ldmgen = ["ldmgen @ git+https://github.com/RobMina/ldmgen.git@5b3c0019d9ddf1e041d22e3550e57cbfcd8e63c4"]
 # both generator-facing extras (explicit; avoid recursive self-extra)
 all = [
-    "bdnmc-nova @ git+https://github.com/RobMina/bdnmc-nova.git@4ae7e8c30ef491df65a2511349e5d660f666b371",
-    "ldmgen @ git+https://github.com/RobMina/ldmgen.git@34103651b57b26bdbbba27b6c4cc1f1c2df3721c",
+    "bdnmc-nova @ git+https://github.com/RobMina/bdnmc-nova.git@0f872b84c2825467895bd0c37822ca4b61adb960",
+    "ldmgen @ git+https://github.com/RobMina/ldmgen.git@5b3c0019d9ddf1e041d22e3550e57cbfcd8e63c4",
 ]
 test = ["pytest"]
 

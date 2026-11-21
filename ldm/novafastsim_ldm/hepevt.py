@@ -117,9 +117,9 @@ def head_text(text: str, n: int) -> str:
     if n < 0:
         return text
     try:
-        from bdnmc_nova import textfilegen as bn_tfg
+        from bdnmc_nova import hepevt as bn_hepevt
 
-        return bn_tfg.head(text, n)
+        return bn_hepevt.head(text, n)
     except ImportError:
         pass
     lines = text.splitlines(keepends=True)
