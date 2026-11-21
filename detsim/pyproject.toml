@@ -15,7 +15,7 @@ dependencies = [
     # fit and gradient-check tooling shared with the other fast simulations; same pin as core[hepsim]
     "hep-simlib @ git+https://github.com/RobMina/hep-simlib.git@b5868350f789f49dfc174110e72d55a40758de67",
     # cell, cell optics and NOvA APD backend; same pin as calib[fibre]
-    "scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@04409cdfab9932fa5a85116c85cc19798bc83c35",
+    "scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@59ba59dfe72bb17151f5b2bd25ef60488900332d",
 ]
 
 [project.optional-dependencies]
