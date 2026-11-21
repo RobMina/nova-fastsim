@@ -89,7 +89,7 @@ resolved description.
 | Calibration closure: light yield and long attenuation from Poisson-sampled muons (hepsimlib.fit) | pytest |
 | Cell response = scint-fibre-fastsim `light` × QE cell by cell; `CellTable` path = analytic path | pytest |
 | Cell optics and APD (FD gradients, sampled vs expected, backend over arrivals) | scint-fibre-fastsim pytest |
-| Cell optics and front-end timing against public NOvA data (Test Beam cell, fibre attenuation curve, a Far Detector cell, ND and FD timing resolution), criteria declared first | scint-fibre-fastsim [`validation/nova_cell`](https://github.com/RobMina/scint-fibre-fastsim/tree/main/validation/nova_cell) and the NOVA-CELL benchmark. Train references pass. Test references fail: the fibre-spool attenuation over-attenuates a 15 m cell, and timing between 30 and 400 PE is too optimistic (see limitations 4 and 8) |
+| Cell optics and front-end timing against public NOvA data (Test Beam cell, fibre attenuation curve, a Far Detector cell, ND and FD timing resolution), criteria declared first | scint-fibre-fastsim [`validation/nova_cell`](https://github.com/RobMina/scint-fibre-fastsim/tree/main/validation/nova_cell) and the NOVA-CELL benchmark. Train references pass. Test references fail: the fibre-spool attenuation over-attenuates a 15 m cell, and timing between 30 and 400 PE is too optimistic. The sampler's timing is now fitted to the ND curve, but does not transfer to the FD (see limitations 4 and 8) |
 | Reco: attenuation correction closes on visible energy; θ² within 25 % for a 0.15 rad shower | pytest |
 | Against the stock simulation (per-cell PE, hit counts, shower profiles, calorimetric energy, θ²) | **not done**: needs a hep-simbench workflow on stock ND samples |
 | Accelerator throughput | laptop CPU: ~160 events/s (sampled chain + reco, 18 432 channels, both dtypes); GPU not measured |
@@ -118,12 +118,14 @@ resolved description.
    geometry parameters.
 7. **Reco is a stand-in.** It gives differentiable E and θ² for sensitivity and design studies, not the
    collaboration's reconstruction.
-8. **Sampled hit times are too precise at low charge.**
-   - The sampler jitters times by `apd.time_res / sqrt(PE)`. The default 10 ns gives 2.6 ns at 15 PE, where the ND
-     measures about 27 ns.
-   - scint-fibre-fastsim's `nova_apd.timing_crb` (the front-end Cramér–Rao bound) reproduces the measured
-     resolution at 12.5 PE in both detectors, but is about a factor 2 low between 60 and 200 PE.
-   - A timing model that covers that range, and wiring it into the sampler, are open.
+8. **Sampled hit times follow a Near Detector fit, not a validated front-end model.**
+   - The sampler jitters times by scint-fibre-fastsim's `nova_apd.time_resolution`: the front-end Cramér–Rao bound,
+     plus (`apd.time_kappa` x `tau_rise`)^2 / PE, plus `apd.time_floor`^2, combined in quadrature.
+   - Its defaults (0.449, 6.09 ns) are fitted to the public ND resolution curve and are within about 25 % of it from
+     12 to 400 PE. (The previous `apd.time_res / sqrt(PE)` gave 2.6 ns at 15 PE, where the ND measures about 27 ns.)
+   - The same form does not carry over to the Far Detector front end: the declared test fails. Between 12 and 100 PE
+     the data fall faster than this form allows, roughly as PE^-0.75.
+   - A front-end model that explains that dependence is open.
 
 ## References (public)
 
