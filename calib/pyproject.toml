@@ -15,4 +15,4 @@ include = ["novafastsim_calib*"]
 
 [project.optional-dependencies]
 # same pin as detsim
-fibre = ["scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@8dc73d04f4a97f47605d654f42f4eae019325d53"]
+fibre = ["scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@04409cdfab9932fa5a85116c85cc19798bc83c35"]

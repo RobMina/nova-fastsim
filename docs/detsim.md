@@ -89,6 +89,7 @@ resolved description.
 | Calibration closure: light yield and long attenuation from Poisson-sampled muons (hepsimlib.fit) | pytest |
 | Cell response = scint-fibre-fastsim `light` × QE cell by cell; `CellTable` path = analytic path | pytest |
 | Cell optics and APD (FD gradients, sampled vs expected, backend over arrivals) | scint-fibre-fastsim pytest |
+| Cell optics and front-end timing against public NOvA data (Test Beam cell, fibre attenuation curve, a Far Detector cell, ND and FD timing resolution), criteria declared first | scint-fibre-fastsim [`validation/nova_cell`](https://github.com/RobMina/scint-fibre-fastsim/tree/main/validation/nova_cell) and the NOVA-CELL benchmark. Train references pass. Test references fail: the fibre-spool attenuation over-attenuates a 15 m cell, and timing between 30 and 400 PE is too optimistic (see limitations 4 and 8) |
 | Reco: attenuation correction closes on visible energy; θ² within 25 % for a 0.15 rad shower | pytest |
 | Against the stock simulation (per-cell PE, hit counts, shower profiles, calorimetric energy, θ²) | **not done**: needs a hep-simbench workflow on stock ND samples |
 | Accelerator throughput | laptop CPU: ~160 events/s (sampled chain + reco, 18 432 channels, both dtypes); GPU not measured |
@@ -103,9 +104,13 @@ resolved description.
    δ-rays are absent; muon radiative losses are ignored.
 3. **Single hit per cell.** Pulses from separate times in one cell are merged at the light-weighted time; no
    pile-up, no noise hits from cells without signal in the expected form, no dead channels beyond `channel_eff`.
-4. **Cell optics are analytic.** The `CellTable` path is in place; the table should come from scint-fibre-fastsim's
-   photon Monte Carlo of the NOvA cell (liquid scintillator, PVC walls, looped Y11 fibre), which needs that kernel
-   to model a cell (its transport is built for the extruded strip today).
+4. **Cell optics are analytic, and their defaults are not tuned to NOvA.**
+   - The `CellTable` path is in place. The table should come from scint-fibre-fastsim's photon Monte Carlo of the
+     NOvA cell (liquid scintillator, PVC walls, looped Y11 fibre). That needs the kernel to model a cell; its
+     transport is built for the extruded strip today.
+   - Against public data, the looped two-exponential form fits a 2.6 m and a 15 m cell, but with an in-cell
+     attenuation (about 40 % short component, 2 m and 10 m). The fibre-spool curve over-attenuates a 15 m cell.
+   - The package defaults give 0.37 of the Test Beam light, so a detector config must set `optics.*`.
 5. **Hard cell walls** make the response piecewise linear in segment positions. Gradients are exact almost
    everywhere but rough at the cell scale; an optional wall-smoothing width is a planned knob for optimisation
    problems that need smooth objectives.
@@ -113,6 +118,12 @@ resolved description.
    geometry parameters.
 7. **Reco is a stand-in.** It gives differentiable E and θ² for sensitivity and design studies, not the
    collaboration's reconstruction.
+8. **Sampled hit times are too precise at low charge.**
+   - The sampler jitters times by `apd.time_res / sqrt(PE)`. The default 10 ns gives 2.6 ns at 15 PE, where the ND
+     measures about 27 ns.
+   - scint-fibre-fastsim's `nova_apd.timing_crb` (the front-end Cramér–Rao bound) reproduces the measured
+     resolution at 12.5 PE in both detectors, but is about a factor 2 low between 60 and 200 PE.
+   - A timing model that covers that range, and wiring it into the sampler, are open.
 
 ## References (public)
 
