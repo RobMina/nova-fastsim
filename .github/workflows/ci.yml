@@ -61,6 +61,7 @@ jobs:
       - name: Pytest
         run: python -m pytest -q -rs
 
+  no-site-paths:
     name: no site-specific strings in public tree
     runs-on: ubuntu-latest
     steps:
