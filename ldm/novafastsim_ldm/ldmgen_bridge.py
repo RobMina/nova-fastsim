@@ -1,7 +1,7 @@
 """Optional ldmgen hop via the public library API (not CLI argv).
 
 Public package: https://github.com/RobMina/ldmgen (pin via novafastsim-ldm[ldmgen]).
-``export_nova`` still sinks through ``bdnmc_nova.textfilegen``.
+``export_nova`` still sinks through the bdnmc-nova HEPEVT writer.
 """
 
 from __future__ import annotations
@@ -34,9 +34,9 @@ def convert_bdnmc_jax(hdf5: Path, out: Path, detector: str = "nova-nd", **kwargs
 
 def export_nova(record: Path, out: Path, config: Path | None = None, max_events: int = -1,
                 summary: Path | None = None):
-    """``ldmgen.export.to_nova`` → TextFileGen file (bdnmc_nova.textfilegen)."""
+    """``ldmgen.export.to_nova`` → HEPEVT text file (bdnmc-nova writer)."""
     deps.require_ldmgen()
-    deps.require_bdnmc_nova()  # to_nova imports bdnmc_nova.textfilegen
+    deps.require_bdnmc_nova()  # to_nova imports the bdnmc-nova HEPEVT writer
     from ldmgen import EventRecord
     from ldmgen.export import to_nova, write_summary
 
@@ -81,7 +81,7 @@ def status() -> dict:
     if available:
         import ldmgen
         out["ldmgen_version"] = getattr(ldmgen, "__version__", "unknown")
-        out["note"] = "ldmgen importable; export_nova still sinks through bdnmc_nova.textfilegen"
+        out["note"] = "ldmgen importable; export_nova still sinks through the bdnmc-nova HEPEVT writer"
     else:
         out["note"] = "not installed in this env; " + deps.LDMGEN_INSTALL
     try:

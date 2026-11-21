@@ -1,8 +1,8 @@
-"""Inspect HEPEVT / TextFileGen *input* text files.
+"""Inspect HEPEVT *input* text files for detector simulation.
 
-NOvASoft TextFileGen (the art module) is stock collaboration software and is never
+The detector simulation that reads these files is stock collaboration software and is never
 reimplemented here. These helpers only read the HEPEVT-style text that
-``bdnmc_nova.textfilegen`` / ``ldmgen export nova`` write, so orchestration can
+the bdnmc-nova HEPEVT writer / ``ldmgen export nova`` write, so orchestration can
 validate a file before ``submit --stages sim``.
 """
 
@@ -14,7 +14,7 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class EventSummary:
-    """One TextFileGen event: header index and particle count."""
+    """One HEPEVT event: header index and particle count."""
 
     index: int
     n_particles: int
@@ -22,7 +22,7 @@ class EventSummary:
 
 @dataclass(frozen=True)
 class FileInfo:
-    """Summary of a HEPEVT / TextFileGen input file."""
+    """Summary of a HEPEVT input file."""
 
     path: str
     n_events: int
@@ -47,7 +47,7 @@ def iter_events(text: str):
         head = lines[i]
         if len(head) != 2:
             raise ValueError(
-                f"expected TextFileGen event header '<event> <particles>', got {' '.join(head)!r}"
+                f"expected HEPEVT event header '<event> <particles>', got {' '.join(head)!r}"
             )
         try:
             index = int(head[0])
@@ -111,7 +111,7 @@ def inspect(path: Path | str, *, max_events: int | None = None) -> FileInfo:
 def head_text(text: str, n: int) -> str:
     """Return the first ``n`` events of HEPEVT text (all of them for ``n < 0``).
 
-    Prefers ``bdnmc_nova.textfilegen.head`` when that package is installed so
+    Prefers bdnmc-nova's own ``head`` helper when that package is installed so
     behaviour matches the writer; otherwise uses a local parser.
     """
     if n < 0:

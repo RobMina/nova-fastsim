@@ -14,7 +14,7 @@ dependencies = ["novafastsim"]
 # bdnmc-nova pulls bdnmc-jax; needed for generate/submit. Pins are commits on each repo's main;
 # bump them together and check they are reachable from a branch or tag (history rewrites orphan SHAs).
 chains = ["bdnmc-nova @ git+https://github.com/RobMina/bdnmc-nova.git@4ae7e8c30ef491df65a2511349e5d660f666b371"]
-# public ldmgen (RobMina/ldmgen); convert/export nova still sinks through bdnmc_nova.textfilegen
+# public ldmgen (RobMina/ldmgen); convert/export nova still sinks through the bdnmc-nova HEPEVT writer
 ldmgen = ["ldmgen @ git+https://github.com/RobMina/ldmgen.git@34103651b57b26bdbbba27b6c4cc1f1c2df3721c"]
 # both generator-facing extras (explicit; avoid recursive self-extra)
 all = [

@@ -1,14 +1,15 @@
-"""Describe and drive the BdNMC JAX → HEPEVT → stock TextFileGen path."""
+"""Describe and drive the BdNMC JAX → HEPEVT → stock detector-simulation path."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Stages this package orchestrates. TextFileGen itself is stock NOvASoft (sim image).
+# Stages this package orchestrates. The detector simulation itself is stock collaboration
+# software running in its own image.
 STAGES = (
     "generate",   # BdNMC JAX via bdnmc_nova.generate → events.txt (+ optional HDF5)
     "ldmgen",     # optional: ldmgen convert/export when the package is installed
-    "simulate",   # bdnmc_nova.jobspec → NOvASoft TextFileGen in SL7
+    "simulate",   # bdnmc_nova.jobspec → stock detector simulation (sim image)
 )
 
 
@@ -23,11 +24,11 @@ class PathInfo:
 
 PATH = (
     PathInfo("generate", "bdnmc-nova + bdnmc-jax",
-             "BdNMC JAX → HEPEVT/TextFileGen file (bdnmc_nova.generate / textfilegen)"),
+             "BdNMC JAX → HEPEVT text file (bdnmc_nova.generate)"),
     PathInfo("ldmgen", "ldmgen (optional; RobMina/ldmgen)",
-             "ldmgen/1 HDF5 analysis record; export nova still calls bdnmc_nova.textfilegen"),
-    PathInfo("simulate", "NOvASoft TextFileGen (stock)",
-             "SL7 art job: HEPEVT → MCTruth → G4 → reco; two-image with JAX host"),
+             "ldmgen/1 HDF5 analysis record; export nova still uses the bdnmc-nova HEPEVT writer"),
+    PathInfo("simulate", "stock detector simulation (collaboration software)",
+             "HEPEVT → detector simulation → reco in the sim image; two-image with JAX host"),
 )
 
 
@@ -37,5 +38,5 @@ def describe() -> str:
     for i, p in enumerate(PATH, 1):
         lines.append(f"{i}. [{p.stage}] {p.owner}")
         lines.append(f"   {p.notes}")
-    lines += ["", "TextFileGen is never reimplemented here."]
+    lines += ["", "The detector simulation is never reimplemented here."]
     return "\n".join(lines)

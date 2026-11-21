@@ -1,4 +1,4 @@
-"""HEPEVT / TextFileGen input helpers (orchestration only; no NOvASoft)."""
+"""HEPEVT input helpers (orchestration only; no detector simulation)."""
 
 from __future__ import annotations
 

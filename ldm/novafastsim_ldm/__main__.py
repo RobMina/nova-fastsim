@@ -24,14 +24,14 @@ def _load_site(args):
 def main(argv=None):
     ap = argparse.ArgumentParser(
         prog="python -m novafastsim_ldm",
-        description="Thin LDM orchestration for nova-fastsim (BdNMC → HEPEVT → stock TextFileGen).",
+        description="Thin LDM orchestration for nova-fastsim (BdNMC → HEPEVT → stock detector simulation).",
     )
     ap.add_argument("--site-env", type=Path, help="KEY=value site file (default: ./site.env if present)")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("describe", help="print the orchestration path")
 
-    p = sub.add_parser("generate", help="BdNMC JAX → TextFileGen file via bdnmc_nova.generate")
+    p = sub.add_parser("generate", help="BdNMC JAX → HEPEVT text file via bdnmc_nova.generate")
     p.add_argument("--card", type=Path)
     p.add_argument("--out", type=Path, help="events.txt (default NOVAFS_EVENTS_OUT or events.txt)")
     p.add_argument("--config", type=Path)
@@ -50,8 +50,8 @@ def main(argv=None):
     p.add_argument("--gpus", type=int)
     p.add_argument("--precision", choices=("float32", "float64"))
     p.add_argument("--trials", type=int)
-    p.add_argument("--events", type=Path, help="sim-only: local TextFileGen file to embed")
-    p.add_argument("--events-at", default="", help="sim-only: TextFileGen path as seen on the site")
+    p.add_argument("--events", type=Path, help="sim-only: local HEPEVT file to embed")
+    p.add_argument("--events-at", default="", help="sim-only: HEPEVT path as seen on the site")
     p.add_argument("--max-events", type=int, help="sim-only: embed only the first N events of --events")
     p.add_argument("--script-out", type=Path,
                    help="write the job script only (dry-run; embeds private frame — mode 0700)")
@@ -76,7 +76,7 @@ def main(argv=None):
 
     p = sub.add_parser(
         "events-info",
-        help="validate / summarise a HEPEVT TextFileGen input file (does not run NOvASoft)",
+        help="validate / summarise a HEPEVT input file (does not run the detector simulation)",
     )
     p.add_argument("events", type=Path, help="path to events.txt (or equivalent)")
     p.add_argument(
@@ -88,7 +88,7 @@ def main(argv=None):
 
     p = sub.add_parser(
         "events-head",
-        help="write the first N events of a HEPEVT file (orchestration helper; not TextFileGen)",
+        help="write the first N events of a HEPEVT file (orchestration helper)",
     )
     p.add_argument("events", type=Path)
     p.add_argument("--n", type=int, required=True, help="number of events to keep (<0 = all)")

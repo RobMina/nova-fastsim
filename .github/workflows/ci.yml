@@ -52,9 +52,9 @@ jobs:
       - name: Grep gate
         run: |
           set -euo pipefail
-          # Absolute cluster roots, wiki checkouts, and common site host/account tokens.
-          # Keep measured paths in the private workspace wiki only.
-          if git grep -nE '/project/hep_aag|/scratch/ram2aq|ai-config/nova/wiki|nova/wiki/sim/|/Users/[^/]+/(mu2e|nova|ai-config)|uva-hpc|ldmxuva' \
+          # Generic patterns only: absolute site roots, home directories, private wiki
+          # checkouts and placeholders. Never list real hosts, accounts or paths here.
+          if git grep -nE '(^|[^$A-Za-z_{])/(project|scratch|exp|pnfs|nashome|home|Users)/[A-Za-z0-9_.-]+/|ai-config|private-[a-z-]*wiki' \
               -- ':!.github/workflows/ci.yml' \
               ':!**/site_check.py' 2>/dev/null; then
             echo "::error::site-specific string found in public tree (see rule: env vars only)"

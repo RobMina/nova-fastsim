@@ -7,16 +7,16 @@ detector simulator in this repository.
 BdNMC (JAX, bdnmc-jax image)
   → python -m novafastsim_ldm generate     # → bdnmc_nova.generate → events.txt
   → [optional] ldmgen convert / export     # RobMina/ldmgen; pip install 'novafastsim-ldm[ldmgen]'
-  → python -m novafastsim_ldm events-info  # validate HEPEVT TextFileGen *input*
-  → python -m novafastsim_ldm submit       # → bdnmc_nova.jobspec → stock TextFileGen
+  → python -m novafastsim_ldm events-info  # validate the HEPEVT *input*
+  → python -m novafastsim_ldm submit       # → bdnmc_nova.jobspec → stock detector simulation
 ```
 
 ## Orchestrate, do not rewrite
 
-- **TextFileGen** = stock NOvASoft art module. Never reimplemented here.
+- The detector simulation that reads the HEPEVT file is stock NOvASoft. Never reimplemented here.
 - Generators stay in BdNMC / bdnmc-nova / [`ldmgen`](https://github.com/RobMina/ldmgen).
-- Private ND frame / FCLs: on-site shared area today (`$BDNMC_SHARED`); later
-  `nova-fastsim-inputs` ([`setup/README.md`](../setup/README.md)).
+- Private ND frame / job configuration: site-local paths today (`$BDNMC_SHARED`); later
+  a private inputs bundle ([`setup/README.md`](../setup/README.md)).
 - Two images: JAX host + NOvASoft SL7.
 
 ## Site.env
@@ -52,9 +52,9 @@ Direct bdnmc-nova entry points remain valid; this CLI only fills site defaults:
 
 | Piece | Where |
 |---|---|
-| Frame + HEPEVT writer | `bdnmc_nova.frame`, `bdnmc_nova.textfilegen` |
+| Frame + HEPEVT writer | `bdnmc_nova.frame` and the bdnmc-nova HEPEVT writer |
 | Stage-1 generate | `python -m bdnmc_nova.generate …` |
 | Job wrapper | `jobs/two_stage.sh` / `python -m bdnmc_nova.jobspec …` |
-| Collaborator shared root | `$BDNMC_SHARED` (site-local; see on-site README) |
+| Collaborator shared root | `$BDNMC_SHARED` (site-local) |
 
 Also see [`uva_two_stage.md`](uva_two_stage.md).

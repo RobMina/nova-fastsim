@@ -1,6 +1,6 @@
 """Thin LDM orchestration over BdNMC / bdnmc-nova / optional ldmgen.
 
-Does not reimplement TextFileGen. Generators stay external.
+Does not reimplement the detector simulation. Generators stay external.
 """
 
 from . import chain
