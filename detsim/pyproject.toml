@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "novafastsim-detsim"
+version = "0.0.1"
+description = "On-device, differentiable NOvA ND detector simulation in JAX (deposits, cell response, readout)"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+dependencies = [
+    "novafastsim",
+    "numpy",
+    "jax",
+    # fit and gradient-check tooling shared with the other fast simulations; same pin as core[hepsim]
+    "hep-simlib @ git+https://github.com/RobMina/hep-simlib.git@b5868350f789f49dfc174110e72d55a40758de67",
+    # cell, cell optics and NOvA APD backend; same ref as calib[fibre] (a branch until its PR merges, then a SHA)
+    "scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@nova/cell-apd",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["novafastsim_detsim*"]

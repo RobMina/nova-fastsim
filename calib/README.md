@@ -14,5 +14,5 @@ python -m novafastsim_calib ensure-dirs   # creates empty subsystem dirs under N
 ```
 
 Bank layout is env-driven (`NOVA_LIBRARY_CACHE`, `NOVA_DEVICE_FLOAT`). No
-site-absolute paths in this package. Generators and the detector simulation stay in
-`novafastsim_ldm` and the simulation image — not here.
+site-absolute paths in this package. Generators stay in `novafastsim_ldm`; the on-device
+detector simulation is `novafastsim_detsim`, whose `calibrate` module fits its parameters.

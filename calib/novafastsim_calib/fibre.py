@@ -17,7 +17,7 @@ INSTALL_HINT = (
 
 
 def status() -> dict[str, Any]:
-    """Whether scint-fibre-fastsim (and its NOvA APD stub) are importable."""
+    """Whether scint-fibre-fastsim (and its NOvA cell optics and APD backend) are importable."""
     out: dict[str, Any] = {
         "available": False,
         "version": None,
@@ -25,8 +25,8 @@ def status() -> dict[str, Any]:
         "repo": "https://github.com/RobMina/scint-fibre-fastsim",
         "install": INSTALL_HINT,
         "notes": (
-            "NOvA cell/APD response is Phase 2 in scint-fibre-fastsim; "
-            "nova-fastsim only orchestrates the pin / probe."
+            "The NOvA cell, cell optics and APD backend are scint-fibre-fastsim's; "
+            "novafastsim_detsim uses them for the cell response."
         ),
     }
     try:

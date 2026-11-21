@@ -90,6 +90,6 @@ def describe() -> str:
         "",
         "Pipeline (planned): recorder → banks → hepsimlib.fit / expected.",
         "Fibre / WLS tables: optional scint-fibre-fastsim (see fibre.status).",
-        "Detector simulation / generators are out of scope for this package.",
+        "Detector simulation: novafastsim_detsim; generators: novafastsim_ldm.",
     ]
     return "\n".join(lines)

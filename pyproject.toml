@@ -3,4 +3,4 @@
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["core", "calib", "ldm", "beamline"]
+pythonpath = ["core", "calib", "ldm", "beamline", "detsim"]

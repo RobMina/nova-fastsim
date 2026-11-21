@@ -8,7 +8,8 @@ Thin orchestration over the existing bdnmc-nova two-stage chain (phase 2):
 3. **events-*** — validate / head the HEPEVT *input* text before sim submit
 4. **simulate** — stock detector simulation via `bdnmc_nova.jobspec` (simulation image)
 
-This package does **not** rewrite the detector simulation or merge generators into the tree.
+This package runs the stock detector simulation unchanged (the validation reference for the on-device
+simulation in `detsim/`) and does not merge generators into the tree.
 
 ```bash
 pip install -e ../core -e '.[chains,ldmgen]'

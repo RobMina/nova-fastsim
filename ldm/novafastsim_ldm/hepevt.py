@@ -1,7 +1,8 @@
 """Inspect HEPEVT *input* text files for detector simulation.
 
-The detector simulation that reads these files is stock collaboration software and is never
-reimplemented here. These helpers only read the HEPEVT-style text that
+The stock detector simulation that reads these files runs unchanged in its own image (the
+on-device simulation, novafastsim_detsim, reads the same text with from_hepevt). These helpers
+only read the HEPEVT-style text that
 the bdnmc-nova HEPEVT writer / ``ldmgen export nova`` write, so orchestration can
 validate a file before ``submit --stages sim``.
 """
