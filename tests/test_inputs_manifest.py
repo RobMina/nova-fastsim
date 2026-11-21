@@ -1,4 +1,4 @@
-"""nova-fastsim-inputs manifest validate/check (no private files)."""
+"""Private-inputs manifest validate/check (no private files)."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ EXAMPLE = ROOT / "setup" / "RELEASE.example.json"
 def test_validate_example_manifest():
     man = inputs.load_manifest(EXAMPLE)
     assert man["schema_version"] == 1
-    assert man["release"].startswith("nova-fastsim-inputs")
+    assert man["release"].startswith("inputs-")
     assert len(man["files"]) >= 1
 
 

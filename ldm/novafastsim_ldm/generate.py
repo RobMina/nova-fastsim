@@ -1,4 +1,4 @@
-"""Stage generate: BdNMC JAX → TextFileGen file via bdnmc_nova.generate."""
+"""Stage generate: BdNMC JAX → HEPEVT text file via bdnmc_nova.generate."""
 
 from __future__ import annotations
 

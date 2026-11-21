@@ -8,15 +8,16 @@ depends on (and does not vendor) shared generators and libraries:
 
 - BdNMC / bdnmc-jax (RobMina/BdNMC)
 - ldmgen (https://github.com/RobMina/ldmgen)
-- bdnmc-nova (RobMina/bdnmc-nova) — HEPEVT / TextFileGen file writers and UVA two-stage jobs
+- bdnmc-nova (RobMina/bdnmc-nova) — HEPEVT file writers and two-stage jobs
 - hep-simlib / hep-simbench / hep-endpoints / cryjax (as those land in the NOvA track)
 
-NOvASoft TextFileGen is stock collaboration software; this repository orchestrates
-jobs that call it and does not reimplement it.
+The detector simulation that reads those files is stock collaboration software; this
+repository orchestrates jobs that call it and does not reimplement it.
 
-NOvA-internal inputs (geometry, FCLs, conditions, calibration tables, data results)
-are not part of this repository. They belong in the separate private bundle
-nova-fastsim-inputs when that exists (see setup/README.md).
+Collaboration-internal inputs (geometry, job configuration, conditions, calibration
+tables, data results)
+are not part of this repository. They belong in a separate private inputs
+bundle when that exists (see setup/README.md).
 
 Optional runtime dependencies (not vendored): RobMina/bdnmc-nova, RobMina/hep-simbench,
 and RobMina/ldmgen (`novafastsim-ldm[ldmgen]`).

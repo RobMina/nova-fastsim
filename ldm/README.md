@@ -2,13 +2,13 @@
 
 Thin orchestration over the existing bdnmc-nova chain (phase 2):
 
-1. **generate** — BdNMC (JAX) → HEPEVT / TextFileGen file (`bdnmc_nova.generate`)
+1. **generate** — BdNMC (JAX) → HEPEVT text file (`bdnmc_nova.generate`)
 2. **ldmgen** (optional) — [`RobMina/ldmgen`](https://github.com/RobMina/ldmgen) `ldmgen/1` HDF5;
-   `export nova` still calls `bdnmc_nova.textfilegen`
+   `export nova` still uses the bdnmc-nova HEPEVT writer
 3. **events-*** — validate / head the HEPEVT *input* text before sim submit
-4. **simulate** — stock NOvASoft **TextFileGen** via `bdnmc_nova.jobspec` (SL7 image)
+4. **simulate** — stock detector simulation via `bdnmc_nova.jobspec` (simulation image)
 
-This package does **not** rewrite TextFileGen or merge generators into the tree.
+This package does **not** rewrite the detector simulation or merge generators into the tree.
 
 ```bash
 pip install -e ../core -e '.[chains,ldmgen]'

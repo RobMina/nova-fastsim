@@ -16,8 +16,8 @@ CFG = CARD
 def _gen_env(monkeypatch):
     monkeypatch.setenv("CARD", str(CARD))
     monkeypatch.setenv("BDNMC_NOVA_CONFIG", str(CFG))
-    monkeypatch.setenv("BDNMC_NOVA_SRC", "/project/example/src/bdnmc-nova")
-    monkeypatch.setenv("GEN_IMAGE", "/project/example/containers/gen.sif")
+    monkeypatch.setenv("BDNMC_NOVA_SRC", "/opt/example/src/bdnmc-nova")
+    monkeypatch.setenv("GEN_IMAGE", "/opt/example/containers/gen.sif")
     monkeypatch.setenv("NOVAFS_JOB_HANDLE", "h-gen")
     monkeypatch.delenv("NOVA_DEVICE_FLOAT", raising=False)
 

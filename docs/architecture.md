@@ -1,9 +1,9 @@
 # Architecture
 
 ```text
-nova-fastsim                 mu2e-fastsim / bdnmc-dune
+nova-fastsim
   profiles, ND response, examples, site.env
-  private: nova-fastsim-inputs (documented; first release TBD)
+  private: inputs bundle (documented; first release TBD)
         │
 hep-simlib / hep-simbench / hep-endpoints / cryjax
         │
@@ -16,11 +16,11 @@ Phase-2 LDM path (orchestrate only):
 novafastsim_ldm generate  →  bdnmc_nova.generate (BdNMC JAX → events.txt)
         │ optional
         ▼
-ldmgen convert / export   →  RobMina/ldmgen; still sinks through bdnmc_nova.textfilegen
+ldmgen convert / export   →  RobMina/ldmgen; still sinks through the bdnmc-nova HEPEVT writer
         │
-novafastsim_ldm events-*  →  validate / head HEPEVT TextFileGen *input* text
+novafastsim_ldm events-*  →  validate / head the HEPEVT *input* text
         │
-novafastsim_ldm submit    →  bdnmc_nova.jobspec → stock NOvASoft TextFileGen (SL7)
+novafastsim_ldm submit    →  bdnmc_nova.jobspec → stock NOvASoft detector simulation (SL7)
 ```
 
 Phase-2 calib path (parallel; scaffolding):
@@ -32,8 +32,7 @@ novafastsim_calib describe/status/ensure-dirs
 ```
 
 Event record (agreed): keep `ldmgen/1` HDF5 for analysis; public = HepMC3 + LdmHepMC;
-HEPEVT / TextFileGen / edep-sim / Mu2e GenParticle are sinks only.
+HEPEVT / edep-sim / Mu2e GenParticle are sinks only.
 
-Plan SoT: private workspace wiki `<private-nova-wiki>/sim/nova-fastsim-plan`.
 Inputs: [`../setup/README.md`](../setup/README.md). hep-simbench stub:
 [`../benchmarks/README.md`](../benchmarks/README.md).

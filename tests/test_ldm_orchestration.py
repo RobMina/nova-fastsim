@@ -21,7 +21,7 @@ def test_describe_cli():
         env={**__import__("os").environ, "PYTHONPATH": str(ROOT / "ldm") + ":" + str(ROOT / "core")},
     )
     assert proc.returncode == 0, proc.stderr
-    assert "TextFileGen" in proc.stdout
+    assert "detector simulation" in proc.stdout
     assert "bdnmc-nova" in proc.stdout
 
 
@@ -51,7 +51,7 @@ def test_chain_path_owners():
     owners = {p.stage: p.owner for p in chain.PATH}
     assert "generate" in owners
     assert "simulate" in owners
-    assert "TextFileGen" in owners["simulate"]
+    assert "detector simulation" in owners["simulate"]
 
 
 def test_hepsimbench_stub_status():

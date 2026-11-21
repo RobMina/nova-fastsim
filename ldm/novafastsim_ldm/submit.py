@@ -1,4 +1,4 @@
-"""Stage simulate: submit bdnmc_nova.jobspec (stock TextFileGen in SL7)."""
+"""Stage simulate: submit bdnmc_nova.jobspec (stock detector simulation in its own image)."""
 
 from __future__ import annotations
 

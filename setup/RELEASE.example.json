@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "release": "nova-fastsim-inputs-vN",
+  "release": "inputs-vN",
   "files": [
     {
-      "path": "nova/frame/nd_frame.example.json",
-      "provenance": "placeholder: ND beam-frame transform used by bdnmc_nova.config",
+      "path": "frame/detector_frame.example.json",
+      "provenance": "placeholder: detector beam-frame transform used by bdnmc_nova.config",
       "redistribution": "nova-internal",
       "size_bytes": 0,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     },
     {
-      "path": "nova/fcl/textfilegen_sim.example.fcl",
-      "provenance": "placeholder: stock TextFileGen simulation FCL path in the release",
+      "path": "config/simulation.example.cfg",
+      "provenance": "placeholder: detector simulation job configuration in the release",
       "redistribution": "nova-internal",
       "size_bytes": 0,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"

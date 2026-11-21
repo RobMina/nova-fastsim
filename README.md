@@ -1,14 +1,14 @@
 # nova-fastsim
 
-JAX-oriented NOvA Near Detector simulation experiment package (parallel to
-[`mu2e-fastsim`](https://github.com/RobMina/mu2e-fastsim)). Profiles, ND response,
+JAX fast simulation package for the NOvA Near Detector. Profiles, detector response,
 examples and site configuration live here. Generators (`BdNMC`, `ldmgen`,
-[`bdnmc-nova`](https://github.com/RobMina/bdnmc-nova)) and hep-sim\* stay in their own
-repositories — this package **depends on** them and does not merge them.
+[`bdnmc-nova`](https://github.com/RobMina/bdnmc-nova)) and the hep-sim\* libraries
+stay in their own repositories: this package **depends on** them and does not merge
+them.
 
-Private geometry / FCLs belong in **`nova-fastsim-inputs`** (not cut yet; see
-[`setup/README.md`](setup/README.md)). Code only: no NOvA-internal conditions, tables
-or results.
+Code only: no collaboration-internal geometry, configuration, conditions, tables or
+results. Those belong in a separate private inputs bundle that this package can
+verify but does not contain (see [`setup/README.md`](setup/README.md)).
 
 ## Status
 
@@ -16,42 +16,40 @@ or results.
 |---|---|
 | `core/` profile + `NOVA_DEVICE_FLOAT` | present; synthetic pytest |
 | `ldm/` thin orchestration | **phase 2+**: `novafastsim_ldm` → bdnmc-nova; [`ldmgen`](https://github.com/RobMina/ldmgen) library bridge (`[ldmgen]` extra) |
-| `core/` inputs | `python -m novafastsim.inputs` `validate` / `check` for `nova-fastsim-inputs` manifests |
+| `core/` inputs | `python -m novafastsim.inputs` `validate` / `check` for private-inputs manifests |
 | `calib/` | scaffolding: `novafastsim_calib` bank layout + optional fibre probe |
 | `beamline/` | package stub |
 | `examples/` | CLI + site two-stage docs |
-| `ldm/` HEPEVT helpers | `events-info` / `events-head` (validate TextFileGen *input* text; stock art module untouched) |
+| `ldm/` HEPEVT helpers | `events-info` / `events-head` (validate the HEPEVT text handed to detector simulation) |
 | `benchmarks/hepsimbench_nd.py` | hep-simbench stub (`novafastsim[bench]`) |
-| `container/nova-fastsim-jax.def` | stub (JAX host — **not** SL7; no SIF build yet) |
-| `nova-fastsim-inputs` | documented + schema checker; first release not cut |
-| On-device ND response | later phase |
-
-Canonical plan (private workspace wiki): `<private-nova-wiki>/sim/nova-fastsim-plan`.
-Shared event record: `<private-nova-wiki>/bdnmc/shared-event-record`.
+| `container/nova-fastsim-jax.def` | stub (JAX host image; no SIF build yet) |
+| Private inputs bundle | documented + schema checker; first release not cut |
+| On-device detector response | later phase |
 
 ## Layout
 
 ```text
-core/          novafastsim — profile, dtype, site helpers
+core/          novafastsim — profile, dtype, site helpers, inputs-manifest checker
 calib/         novafastsim_calib — bank layout scaffolding + optional fibre probe
 ldm/           novafastsim_ldm — thin BdNMC / ldmgen / bdnmc-nova orchestration + HEPEVT helpers
 beamline/      novafastsim_beamline — flux hooks (stub)
 examples/      LDM chain CLI docs
-benchmarks/    hep-simbench ND stub
-setup/         nova-fastsim-inputs release notes + RELEASE.example.json
-container/     Apptainer def for the JAX host (two-image with NOvASoft SL7)
+benchmarks/    hep-simbench stub
+setup/         private-inputs release notes + RELEASE.example.json
+container/     Apptainer def for the JAX host
 tests/         synthetic pytest (no private inputs)
 site.env.example
 ```
 
-## TextFileGen (do not rewrite)
+## Detector simulation stays external
 
-**TextFileGen** is the stock NOvASoft art module (HEPEVT text → MCTruth → G4). This
-repository does not reimplement it. `bdnmc_nova.textfilegen` / `ldmgen export nova`
-**write** the HEPEVT file; NOvASoft consumes it. See
+Generation writes a HEPEVT text file; the detector simulation that reads it runs in
+the collaboration's own software, unchanged, in its own container image. This
+repository orchestrates those jobs and never reimplements that simulation. See
 [`examples/README.md`](examples/README.md).
 
-Two-image composition remains mandatory: JAX needs glibc ≥ 2.27; NOvASoft runs in SL7.
+Two-image composition is mandatory: JAX needs glibc ≥ 2.27, and the detector
+simulation image is older.
 
 ## Device / dtype
 
@@ -81,7 +79,6 @@ cp site.env.example site.env   # fill paths
 .venv/bin/python -m novafastsim_ldm ldmgen-status
 .venv/bin/python -m novafastsim_calib status
 ```
-
 
 ## Licence
 

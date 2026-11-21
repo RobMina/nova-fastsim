@@ -1,4 +1,4 @@
-"""Validate and check a nova-fastsim-inputs manifest (schema v1). No private files here."""
+"""Validate and check a private-inputs release manifest (schema v1). No private files here."""
 
 from __future__ import annotations
 
