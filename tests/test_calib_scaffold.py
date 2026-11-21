@@ -61,6 +61,16 @@ def test_fibre_status_without_package():
     assert "pip" in st["install"]
 
 
+def test_fibre_status_with_pinned_package():
+    pytest.importorskip("scintfibrefastsim")
+    from novafastsim_calib import fibre
+
+    st = fibre.status()
+    assert st["available"] is True
+    assert st["version"]
+    assert st["nova_apd"] is True
+
+
 def test_describe_cli():
     proc = subprocess.run(
         [sys.executable, "-m", "novafastsim_calib", "describe"],
