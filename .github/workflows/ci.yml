@@ -1,0 +1,63 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest-minimal:
+    name: pytest (no optional extras)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]  # novafastsim-ldm needs >=3.11 (bdnmc-nova)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages
+        run: |
+          python -m pip install -U pip
+          pip install -e 'core[test]' -e calib -e ldm -e beamline
+      - name: Pytest
+        run: python -m pytest -q
+
+  pytest-ldmgen:
+    name: pytest (+ ldmgen extra)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages with ldmgen
+        run: |
+          python -m pip install -U pip
+          pip install -e 'core[test]' -e calib -e 'ldm[ldmgen]' -e beamline
+      - name: Pytest
+        run: python -m pytest -q
+
+  no-site-paths:
+    name: no site-specific strings in public tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Grep gate
+        run: |
+          set -euo pipefail
+          # Absolute cluster roots, wiki checkouts, and common site host/account tokens.
+          # Keep measured paths in the private workspace wiki only.
+          if git grep -nE '/project/hep_aag|/scratch/ram2aq|ai-config/nova/wiki|nova/wiki/sim/|/Users/[^/]+/(mu2e|nova|ai-config)|uva-hpc|ldmxuva' \
+              -- ':!.github/workflows/ci.yml' \
+              ':!**/site_check.py' 2>/dev/null; then
+            echo "::error::site-specific string found in public tree (see rule: env vars only)"
+            exit 1
+          fi
+          echo "ok: no banned site strings"

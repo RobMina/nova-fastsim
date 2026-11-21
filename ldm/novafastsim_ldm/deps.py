@@ -15,8 +15,7 @@ def require_bdnmc_nova():
     except ImportError as e:
         raise ImportError(
             "bdnmc-nova is required for generate/submit. "
-            "Install: pip install 'novafastsim-ldm[chains]' "
-            "or pip install 'bdnmc-nova @ git+https://github.com/RobMina/bdnmc-nova.git'"
+            "Install: pip install 'novafastsim-ldm[chains]' (commit-pinned RobMina/bdnmc-nova)"
         ) from e
 
 

@@ -31,10 +31,35 @@ def test_dtype_compute_override():
         dtype.compute_dtype("float16")
 
 
-def test_dtype_rejects_ood_in_subprocess():
+def test_dtype_resolve_default(monkeypatch):
+    from novafastsim import dtype
+
+    monkeypatch.delenv("NOVA_DEVICE_FLOAT", raising=False)
+    assert dtype.resolve() == "float64"
+    monkeypatch.setenv("NOVA_DEVICE_FLOAT", "float32")
+    assert dtype.resolve() == "float32"
+
+
+def test_dtype_lazy_float_attr(monkeypatch):
+    from novafastsim import dtype
+
+    monkeypatch.setenv("NOVA_DEVICE_FLOAT", "float32")
+    assert dtype.FLOAT == np.dtype("float32")
+    assert dtype.SINGLE is True
+
+
+def test_dtype_rejects_ood_via_resolve(monkeypatch):
+    from novafastsim import dtype
+
+    monkeypatch.setenv("NOVA_DEVICE_FLOAT", "float16")
+    with pytest.raises(ValueError, match="NOVA_DEVICE_FLOAT"):
+        dtype.resolve()
+
+
+def test_inputs_module_survives_bad_dtype_env(monkeypatch):
+    """Importing novafastsim.inputs must not fail on a bad NOVA_DEVICE_FLOAT."""
     env = {**os.environ, "NOVA_DEVICE_FLOAT": "float16", "PYTHONPATH": str(ROOT / "core")}
-    # Fresh interpreter so dtype.py re-reads the environment at import.
-    code = "import novafastsim.dtype"
+    code = "import novafastsim.inputs; print('ok')"
     proc = subprocess.run(
         [sys.executable, "-c", code],
         cwd=ROOT,
@@ -42,8 +67,8 @@ def test_dtype_rejects_ood_in_subprocess():
         capture_output=True,
         text=True,
     )
-    assert proc.returncode != 0
-    assert "NOVA_DEVICE_FLOAT" in (proc.stderr + proc.stdout) or "float16" in (proc.stderr + proc.stdout)
+    assert proc.returncode == 0, proc.stderr
+    assert "ok" in proc.stdout
 
 
 def test_packages_import():

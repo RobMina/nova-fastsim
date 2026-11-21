@@ -16,9 +16,11 @@ or results.
 |---|---|
 | `core/` profile + `NOVA_DEVICE_FLOAT` | present; synthetic pytest |
 | `ldm/` thin orchestration | **phase 2+**: `novafastsim_ldm` → bdnmc-nova; [`ldmgen`](https://github.com/RobMina/ldmgen) library bridge (`[ldmgen]` extra) |
-| `core/` inputs | `python -m novafastsim.inputs validate|check` for `nova-fastsim-inputs` manifests |
-| `calib/`, `beamline/` | package stubs |
-| `examples/` | CLI + UVA two-stage docs |
+| `core/` inputs | `python -m novafastsim.inputs` `validate` / `check` for `nova-fastsim-inputs` manifests |
+| `calib/` | scaffolding: `novafastsim_calib` bank layout + optional fibre probe |
+| `beamline/` | package stub |
+| `examples/` | CLI + site two-stage docs |
+| `ldm/` HEPEVT helpers | `events-info` / `events-head` (validate TextFileGen *input* text; stock art module untouched) |
 | `benchmarks/hepsimbench_nd.py` | hep-simbench stub (`novafastsim[bench]`) |
 | `container/nova-fastsim-jax.def` | stub (JAX host — **not** SL7; no SIF build yet) |
 | `nova-fastsim-inputs` | documented + schema checker; first release not cut |
@@ -31,8 +33,8 @@ Shared event record: `<private-nova-wiki>/bdnmc/shared-event-record`.
 
 ```text
 core/          novafastsim — profile, dtype, site helpers
-calib/         novafastsim_calib — hep-simlib banks under the nova profile (stub)
-ldm/           novafastsim_ldm — thin BdNMC / ldmgen / bdnmc-nova orchestration
+calib/         novafastsim_calib — bank layout scaffolding + optional fibre probe
+ldm/           novafastsim_ldm — thin BdNMC / ldmgen / bdnmc-nova orchestration + HEPEVT helpers
 beamline/      novafastsim_beamline — flux hooks (stub)
 examples/      LDM chain CLI docs
 benchmarks/    hep-simbench ND stub
@@ -55,14 +57,18 @@ Two-image composition remains mandatory: JAX needs glibc ≥ 2.27; NOvASoft runs
 
 Every public path will support **float32 and float64**. Set `NOVA_DEVICE_FLOAT` to
 `float32` or `float64`; unset defaults to `float64`. Other values fail closed.
+`novafastsim.dtype.resolve()` reads the environment lazily (after `site.env`);
+`submit` / `generate` always apply that resolved precision. Use
+`dtype.apply_jax_x64()` so JAX’s `jax_enable_x64` matches.
 
 ## Quickstart
 
 ```bash
 git clone https://github.com/RobMina/nova-fastsim.git && cd nova-fastsim
-python3 -m venv .venv && .venv/bin/pip install -q -e core -e calib -e ldm -e beamline
-.venv/bin/python -m pytest -q tests
+python3 -m venv .venv && .venv/bin/pip install -q -e 'core[test]' -e calib -e ldm -e beamline
+.venv/bin/python -m pytest -q
 .venv/bin/python -m novafastsim_ldm describe
+.venv/bin/python -m novafastsim_calib describe
 ```
 
 For generation / submit against a real site:
@@ -71,7 +77,9 @@ For generation / submit against a real site:
 .venv/bin/pip install -q -e 'ldm[chains,ldmgen]'   # bdnmc-nova + bdnmc-jax + ldmgen
 cp site.env.example site.env   # fill paths
 .venv/bin/python -m novafastsim_ldm generate --trials 1024
+.venv/bin/python -m novafastsim_ldm events-info events.txt   # validate HEPEVT before sim
 .venv/bin/python -m novafastsim_ldm ldmgen-status
+.venv/bin/python -m novafastsim_calib status
 ```
 
 
