@@ -45,7 +45,7 @@ jobs:
         run: python -m pytest -q
 
   pytest-all:
-    name: pytest (+ all generator extras: bdnmc-nova + ldmgen)
+    name: pytest (+ all generator extras, bdnmc-nova and ldmgen)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
