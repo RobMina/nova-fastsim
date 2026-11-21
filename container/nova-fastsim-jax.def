@@ -12,14 +12,24 @@ From: python:3.12-slim-bookworm
     Do not build a large SIF from this stub until package contents and pins are ready.
     CPU/GPU: JAX pip wheels; on a GPU node run with --nv.
 
+    %files copies only package trees + licence files (never site.env, .venv, .git, or
+    private frame JSON). Prefer building from `git archive` when the first real image
+    is authorized. JAX wheels are installed in %post; set NOVA_DEVICE_FLOAT at runtime
+    (default float64). Call novafastsim.dtype.apply_jax_x64() so jax_enable_x64 matches.
+
 %files
-    . /opt/nova-fastsim
+    core /opt/nova-fastsim/core
+    calib /opt/nova-fastsim/calib
+    ldm /opt/nova-fastsim/ldm
+    beamline /opt/nova-fastsim/beamline
+    LICENSE /opt/nova-fastsim/LICENSE
+    NOTICE /opt/nova-fastsim/NOTICE
 
 %environment
     export XLA_PYTHON_CLIENT_PREALLOCATE=false
-    export JAX_ENABLE_X64=1
     export MPLBACKEND=Agg
     export PYTHONDONTWRITEBYTECODE=1
+    # Default dtype; override at runtime. apply_jax_x64() maps this to jax_enable_x64.
     export NOVA_DEVICE_FLOAT=float64
 
 %post
@@ -28,14 +38,15 @@ From: python:3.12-slim-bookworm
     apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates \
         && rm -rf /var/lib/apt/lists/*
     python -m pip install -q --upgrade pip
-    for p in core calib ldm beamline; do
-        python -m pip install -q --no-deps /opt/nova-fastsim/$p
-    done
-    # JAX / hep-simlib pins: fill when the first real image build is authorized.
+    # Install declared deps (numpy, …). JAX CPU wheel for the host image stub.
+    python -m pip install -q /opt/nova-fastsim/core /opt/nova-fastsim/calib \
+        /opt/nova-fastsim/ldm /opt/nova-fastsim/beamline
+    python -m pip install -q "jax[cpu]"
+    # GPU / hep-simlib pins: fill when the first real image build is authorized.
     find / -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
 
 %runscript
     exec "$@"
 
 %test
-    python -c "import novafastsim; print(novafastsim.__version__)"
+    python -c "import numpy, novafastsim; from novafastsim import dtype; print(novafastsim.__version__, dtype.resolve())"
