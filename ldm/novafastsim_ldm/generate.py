@@ -7,7 +7,7 @@ from pathlib import Path
 
 from novafastsim import dtype, site
 
-from . import deps
+from . import deps, site_check
 
 
 def _out_path(out: Path | None) -> Path:
@@ -23,14 +23,16 @@ def run(card: Path | None = None, out: Path | None = None, config: Path | None =
         channel: str | None = None, extra: list[str] | None = None, dry_run: bool = False):
     """Call ``bdnmc_nova.generate`` with site.env defaults for unset paths.
 
-    Validates ``NOVA_DEVICE_FLOAT`` (via :func:`novafastsim.dtype.resolve`) before building
-    argv. Precision is recorded in the dry-run payload; ``bdnmc_nova.generate`` itself does
-    not take a ``--precision`` flag today — JAX dtype is applied via
+    Validates ``NOVA_DEVICE_FLOAT`` (via :func:`novafastsim.dtype.resolve`) and the card /
+    frame files (via :func:`site_check.check_generate`) before building argv. Precision is
+    recorded in the dry-run payload; ``bdnmc_nova.generate`` itself does not take a
+    ``--precision`` flag today — JAX dtype is applied via
     :func:`novafastsim.dtype.apply_jax_x64` when generation actually runs.
     """
     prec = dtype.resolve()
-    card_p = Path(card) if card else Path(site.require("CARD"))
-    config_p = Path(config) if config else Path(site.require("BDNMC_NOVA_CONFIG"))
+    resolved = site_check.check_generate(card=card, config=config)
+    card_p = Path(resolved["card"])
+    config_p = Path(resolved["config"])
     out_p = _out_path(out)
     argv = [str(card_p), "--out", str(out_p), "--config", str(config_p)]
     if trials is not None:
@@ -44,7 +46,7 @@ def run(card: Path | None = None, out: Path | None = None, config: Path | None =
     if extra:
         argv += list(extra)
     if dry_run:
-        return {"dry_run": True, "argv": argv, "precision": prec, "out": str(out_p)}
+        return {"dry_run": True, "argv": argv, **resolved, "precision": prec, "out": str(out_p)}
 
     dtype.apply_jax_x64(prec)
     deps.require_bdnmc_nova()

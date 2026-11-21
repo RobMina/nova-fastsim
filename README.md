@@ -15,15 +15,15 @@ verify but does not contain (see [`setup/README.md`](setup/README.md)).
 | Piece | State |
 |---|---|
 | `core/` profile + `NOVA_DEVICE_FLOAT` | present; synthetic pytest |
-| `ldm/` thin orchestration | **phase 2+**: `novafastsim_ldm` → bdnmc-nova; [`ldmgen`](https://github.com/RobMina/ldmgen) library bridge (`[ldmgen]` extra) |
+| `ldm/` thin orchestration | **phase 2+**: `novafastsim_ldm` → bdnmc-nova; [`ldmgen`](https://github.com/RobMina/ldmgen) library bridge (`[ldmgen]` extra); `check-site` + cuboid-override gate |
 | `core/` inputs | `python -m novafastsim.inputs` `validate` / `check` for private-inputs manifests |
 | `calib/` | scaffolding: `novafastsim_calib` bank layout + optional fibre probe |
 | `beamline/` | package stub |
-| `examples/` | CLI + site two-stage docs |
+| `examples/` | CLI, site smoke and two-stage docs; generic cuboid reference card |
 | `ldm/` HEPEVT helpers | `events-info` / `events-head` (validate the HEPEVT text handed to detector simulation) |
 | `benchmarks/hepsimbench_nd.py` | hep-simbench stub (`novafastsim[bench]`) |
 | `container/nova-fastsim-jax.def` | stub (JAX host image; no SIF build yet) |
-| Private inputs bundle | documented + schema checker; first release not cut |
+| Private inputs bundle | schema checker + role-based defaults; stub release only (identity frame, needs `NOVA_FASTSIM_ALLOW_STUB=1`) |
 | On-device detector response | later phase |
 
 ## Layout

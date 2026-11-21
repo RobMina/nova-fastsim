@@ -1,6 +1,6 @@
 # novafastsim_ldm
 
-Thin orchestration over the existing bdnmc-nova chain (phase 2):
+Thin orchestration over the existing bdnmc-nova two-stage chain (phase 2):
 
 1. **generate** — BdNMC (JAX) → HEPEVT text file (`bdnmc_nova.generate`)
 2. **ldmgen** (optional) — [`RobMina/ldmgen`](https://github.com/RobMina/ldmgen) `ldmgen/1` HDF5;
@@ -13,6 +13,7 @@ This package does **not** rewrite the detector simulation or merge generators in
 ```bash
 pip install -e ../core -e '.[chains,ldmgen]'
 python -m novafastsim_ldm describe
+python -m novafastsim_ldm check-site --stages gen --card CARD --config FRAME.json
 python -m novafastsim_ldm generate --trials 1024 --out events.txt
 python -m novafastsim_ldm events-info events.txt
 python -m novafastsim_ldm events-head events.txt --n 10 --out head.txt

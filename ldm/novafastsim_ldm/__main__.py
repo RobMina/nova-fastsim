@@ -9,7 +9,7 @@ from pathlib import Path
 
 from novafastsim import dtype, site
 
-from . import chain, generate, hepevt, ldmgen_bridge, submit
+from . import chain, generate, hepevt, ldmgen_bridge, site_check, submit
 
 
 def _load_site(args):
@@ -17,6 +17,7 @@ def _load_site(args):
         site.load_dotenv(args.site_env)
     elif Path("site.env").is_file():
         site.load_dotenv("site.env")
+    site_check.apply_inputs_defaults()
     # Validate dtype after site.env so a bad value fails here, not at import.
     dtype.resolve()
 
@@ -30,6 +31,18 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("describe", help="print the orchestration path")
+
+    def sim_events(p):
+        p.add_argument("--events", type=Path, help="--stages sim alone: a local HEPEVT file to embed")
+        p.add_argument("--events-at", help="--stages sim alone: the HEPEVT file's path at the site")
+
+    p = sub.add_parser("check-site", help="validate what `submit --stages ...` needs "
+                       "(use `generate --dry-run` for a local generate)")
+    p.add_argument("--stages", default="gen,sim", choices=("gen,sim", "gen", "sim"))
+    p.add_argument("--card", type=Path)
+    p.add_argument("--config", type=Path)
+    p.add_argument("--handle")
+    sim_events(p)
 
     p = sub.add_parser("generate", help="BdNMC JAX → HEPEVT text file via bdnmc_nova.generate")
     p.add_argument("--card", type=Path)
@@ -48,11 +61,15 @@ def main(argv=None):
     p.add_argument("--endpoint", help="hependpoints name (default NOVAFS_ENDPOINT)")
     p.add_argument("--stages", default="gen,sim", choices=("gen,sim", "gen", "sim"))
     p.add_argument("--gpus", type=int)
+    p.add_argument("--gpu-type", default="")
+    p.add_argument("--cores", type=int)
+    p.add_argument("--mem-gb", type=int)
+    p.add_argument("--minutes", type=int)
+    p.add_argument("--preamble", default="", help="site shell before the job, e.g. 'module load apptainer'")
     p.add_argument("--precision", choices=("float32", "float64"))
     p.add_argument("--trials", type=int)
-    p.add_argument("--events", type=Path, help="sim-only: local HEPEVT file to embed")
-    p.add_argument("--events-at", default="", help="sim-only: HEPEVT path as seen on the site")
-    p.add_argument("--max-events", type=int, help="sim-only: embed only the first N events of --events")
+    sim_events(p)
+    p.add_argument("--max-events", type=int, help="with --events: embed only the first N events")
     p.add_argument("--script-out", type=Path,
                    help="write the job script only (dry-run; embeds private frame — mode 0700)")
     p.add_argument("--dry-run", action="store_true", help="validate site and print argv; do not submit")
@@ -101,6 +118,12 @@ def main(argv=None):
     if args.cmd == "describe":
         print(chain.describe())
         return 0
+    if args.cmd == "check-site":
+        print(json.dumps(site_check.check_submit(
+            card=args.card, config=args.config, stages=args.stages,
+            overrides={"NOVAFS_JOB_HANDLE": args.handle}, events=args.events,
+            events_at=args.events_at), indent=1))
+        return 0
     if args.cmd == "generate":
         result = generate.run(
             card=args.card, out=args.out, config=args.config, hdf5=args.hdf5,
@@ -112,9 +135,11 @@ def main(argv=None):
     if args.cmd == "submit":
         result = submit.run(
             card=args.card, config=args.config, handle=args.handle, endpoint=args.endpoint,
-            stages=args.stages, gpus=args.gpus, precision=args.precision, trials=args.trials,
-            events=args.events, events_at=args.events_at or None, max_events=args.max_events,
-            dry_run_script=args.script_out, dry_run=args.dry_run)
+            stages=args.stages, gpus=args.gpus, gpu_type=args.gpu_type or None, cores=args.cores,
+            mem_gb=args.mem_gb, minutes=args.minutes, preamble=args.preamble or None,
+            precision=args.precision, trials=args.trials, events=args.events,
+            events_at=args.events_at, max_events=args.max_events, dry_run_script=args.script_out,
+            dry_run=args.dry_run)
         if args.dry_run:
             print(json.dumps(result, indent=1, default=str))
         return 0

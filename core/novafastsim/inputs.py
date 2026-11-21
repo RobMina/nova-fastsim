@@ -66,6 +66,10 @@ def validate(obj: dict) -> dict:
                 raise ValueError(f"missing {key}: {name}")
         if row["redistribution"] not in ("nova-internal", "approved"):
             raise ValueError(f"redistribution must be nova-internal or approved: {name}")
+        if "role" in row and (not isinstance(row["role"], str) or not row["role"].strip()):
+            raise ValueError(f"role must be a nonempty string: {name}")
+        if "stub" in row and type(row["stub"]) is not bool:
+            raise ValueError(f"stub must be true or false: {name}")
     return obj
 
 

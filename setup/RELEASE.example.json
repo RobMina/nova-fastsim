@@ -4,6 +4,7 @@
   "files": [
     {
       "path": "frame/detector_frame.example.json",
+      "role": "frame",
       "provenance": "placeholder: detector beam-frame transform used by bdnmc_nova.config",
       "redistribution": "nova-internal",
       "size_bytes": 0,
@@ -11,6 +12,7 @@
     },
     {
       "path": "config/simulation.example.cfg",
+      "role": "sim_config",
       "provenance": "placeholder: detector simulation job configuration in the release",
       "redistribution": "nova-internal",
       "size_bytes": 0,
