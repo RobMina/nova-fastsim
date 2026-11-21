@@ -14,5 +14,5 @@ dependencies = ["novafastsim"]
 include = ["novafastsim_calib*"]
 
 [project.optional-dependencies]
-# same ref as detsim (a branch until its PR merges, then a SHA)
-fibre = ["scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@nova/cell-apd"]
+# same pin as detsim
+fibre = ["scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@8dc73d04f4a97f47605d654f42f4eae019325d53"]

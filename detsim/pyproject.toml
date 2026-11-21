@@ -14,8 +14,8 @@ dependencies = [
     "jax",
     # fit and gradient-check tooling shared with the other fast simulations; same pin as core[hepsim]
     "hep-simlib @ git+https://github.com/RobMina/hep-simlib.git@b5868350f789f49dfc174110e72d55a40758de67",
-    # cell, cell optics and NOvA APD backend; same ref as calib[fibre] (a branch until its PR merges, then a SHA)
-    "scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@nova/cell-apd",
+    # cell, cell optics and NOvA APD backend; same pin as calib[fibre]
+    "scint-fibre-fastsim @ git+https://github.com/RobMina/scint-fibre-fastsim.git@8dc73d04f4a97f47605d654f42f4eae019325d53",
 ]
 
 [project.optional-dependencies]
