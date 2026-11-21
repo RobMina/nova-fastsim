@@ -55,8 +55,7 @@ jobs:
           # Generic patterns only: absolute site roots, home directories, private wiki
           # checkouts and placeholders. Never list real hosts, accounts or paths here.
           if git grep -nE '(^|[^$A-Za-z_{])/(project|scratch|exp|pnfs|nashome|home|Users)/[A-Za-z0-9_.-]+/|ai-config|private-[a-z-]*wiki' \
-              -- ':!.github/workflows/ci.yml' \
-              ':!**/site_check.py' 2>/dev/null; then
+              -- ':!.github/workflows/ci.yml' 2>/dev/null; then
             echo "::error::site-specific string found in public tree (see rule: env vars only)"
             exit 1
           fi

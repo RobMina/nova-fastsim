@@ -7,93 +7,83 @@ from pathlib import Path
 
 from novafastsim import dtype, site
 
-from . import deps
+from . import deps, site_check
 
 
-def _site_or(name: str, override: str | None) -> str:
-    if override:
-        return override
-    return site.require(name)
-
-
-def _optional_site(name: str, override: str | None) -> str | None:
-    if override:
-        return override
-    value = os.environ.get(name) or ""
-    return value or None
+def _stages(stages: str) -> list[str]:
+    stage_list = [s.strip() for s in stages.split(",") if s.strip()]
+    if "gen" not in stage_list and "sim" not in stage_list:
+        raise ValueError(f"stages must include gen and/or sim, got {stages!r}")
+    return stage_list
 
 
 def run(card: Path | None = None, handle: str | None = None, endpoint: str | None = None,
         stages: str = "gen,sim", config: Path | None = None, src: str | None = None,
         gen_image: str | None = None, nova_image: str | None = None, nova_setup: str | None = None,
-        nova_fcl: str | None = None, gpus: int | None = None, precision: str | None = None,
-        trials: int | None = None, events: Path | None = None, events_at: str | None = None,
-        max_events: int | None = None, dry_run_script: Path | None = None,
-        extra: list[str] | None = None, dry_run: bool = False):
+        nova_fcl: str | None = None, gpus: int | None = None, gpu_type: str | None = None,
+        precision: str | None = None, trials: int | None = None, cores: int | None = None,
+        mem_gb: int | None = None, minutes: int | None = None, preamble: str | None = None,
+        events: Path | None = None, events_at: str | None = None, max_events: int | None = None,
+        dry_run_script: Path | None = None, extra: list[str] | None = None, dry_run: bool = False):
     """Build argv for ``bdnmc_nova.jobspec`` submit or script (dry-run).
 
-    Gen-stage variables (``CARD``, ``BDNMC_NOVA_SRC``, ``GEN_IMAGE``, …) are required
-    only when ``gen`` is in ``stages``. Sim-stage variables (``NOVA_SETUP``, ``NOVA_FCL``)
-    only when ``sim`` is in ``stages``. ``NOVA_IMAGE`` is optional for sim (passed through
-    when set). Sim-only jobs need ``--events`` (local embed) or ``--events-at`` (site path).
+    Explicit arguments win over site.env. Only the variables the requested stages need
+    are required: gen needs card / config / ``BDNMC_NOVA_SRC`` / ``GEN_IMAGE``; sim needs
+    ``NOVA_SETUP`` / ``NOVA_FCL`` (``NOVA_IMAGE`` optional), and sim alone needs ``events``
+    or ``events_at``. Sim alone passes a frame configuration through when one is given.
+    ``NOVA_DEVICE_FLOAT`` / ``precision`` is validated and always passed.
     """
-    stage_list = [s.strip() for s in stages.split(",") if s.strip()]
-    want_gen = "gen" in stage_list
-    want_sim = "sim" in stage_list
-    if not want_gen and not want_sim:
-        raise ValueError(f"stages must include gen and/or sim, got {stages!r}")
-
-    handle = handle or site.require("NOVAFS_JOB_HANDLE")
+    want = _stages(stages)
+    stages = ",".join(want)
     prec = dtype.resolve(precision)
+    overrides = {
+        "NOVAFS_JOB_HANDLE": handle, "BDNMC_NOVA_SRC": src, "GEN_IMAGE": gen_image,
+        "NOVA_IMAGE": nova_image, "NOVA_SETUP": nova_setup, "NOVA_FCL": nova_fcl,
+    }
+    resolved = site_check.check_submit(card=card, config=config, stages=stages, overrides=overrides,
+                                       events=events, events_at=events_at)
 
-    argv = ["--handle", handle, "--stages", stages, "--precision", prec]
-
-    if want_gen:
-        card_p = Path(card) if card else Path(site.require("CARD"))
-        config_p = Path(config) if config else Path(site.require("BDNMC_NOVA_CONFIG"))
-        argv += [
-            "--config", str(config_p),
-            "--src", _site_or("BDNMC_NOVA_SRC", src),
-            "--gen-image", _site_or("GEN_IMAGE", gen_image),
-        ]
+    argv = ["--handle", resolved["handle"], "--stages", stages, "--precision", prec]
+    if "gen" in want:
+        argv += ["--config", resolved["config"], "--src", resolved["BDNMC_NOVA_SRC"],
+                 "--gen-image", resolved["GEN_IMAGE"]]
     elif config is not None or os.environ.get("BDNMC_NOVA_CONFIG"):
-        # Optional frame for sim-only when provided (jobspec still accepts --config).
+        # Optional frame for sim alone when provided (jobspec still accepts --config).
         config_p = Path(config) if config else Path(site.require("BDNMC_NOVA_CONFIG"))
-        argv += ["--config", str(config_p)]
-
-    if want_sim:
-        argv += [
-            "--nova-setup", _site_or("NOVA_SETUP", nova_setup),
-            "--nova-fcl", _site_or("NOVA_FCL", nova_fcl),
-        ]
-        img = _optional_site("NOVA_IMAGE", nova_image)
-        if img:
-            argv += ["--nova-image", img]
-        if not want_gen:
-            if bool(events) == bool(events_at):
-                raise ValueError(
-                    "--stages sim: pass --events (local file to embed) or --events-at (path at the site)"
-                )
-            if events is not None:
-                argv += ["--events", str(events)]
-            if events_at:
-                argv += ["--events-at", events_at]
-            if max_events is not None:
+        argv += ["--config", str(site_check.require_file("BDNMC_NOVA_CONFIG", config_p).resolve())]
+    if "sim" in want:
+        argv += ["--nova-setup", resolved["NOVA_SETUP"], "--nova-fcl", resolved["NOVA_FCL"]]
+        if resolved["NOVA_IMAGE"]:
+            argv += ["--nova-image", resolved["NOVA_IMAGE"]]
+        if "events" in resolved:
+            argv += ["--events", resolved["events"]]
+            if max_events is not None and max_events >= 0:
                 argv += ["--max-events", str(max_events)]
+        elif "events_at" in resolved:
+            argv += ["--events-at", resolved["events_at"]]
 
     if gpus is None and os.environ.get("NOVAFS_GPUS"):
         gpus = int(site.require("NOVAFS_GPUS"))
-    if gpus:
+    if gpus is not None:
         argv += ["--gpus", str(gpus)]
+    if gpu_type:
+        argv += ["--gpu-type", gpu_type]
     if trials is not None:
         argv += ["--trials", str(trials)]
+    if cores is not None:
+        argv += ["--cores", str(cores)]
+    if mem_gb is not None:
+        argv += ["--mem-gb", str(mem_gb)]
+    if minutes is not None:
+        argv += ["--minutes", str(minutes)]
     if extra:
         argv += list(extra)
-    if want_gen:
-        argv.append(str(card_p))
+    if "gen" in want:
+        argv.append(resolved["card"])
 
     if dry_run:
-        return {"dry_run": True, "argv_tail": argv, "precision": prec, "stages": stages}
+        return {"dry_run": True, "argv_tail": argv, "precision": prec, "stages": stages,
+                "resolved": resolved, "preamble": preamble or ""}
 
     deps.require_bdnmc_nova()
     from bdnmc_nova import jobspec as bn_jobspec
@@ -102,4 +92,7 @@ def run(card: Path | None = None, handle: str | None = None, endpoint: str | Non
         return bn_jobspec.main(["script", "--out", str(dry_run_script), *argv])
 
     endpoint = endpoint or site.require("NOVAFS_ENDPOINT")
-    return bn_jobspec.main(["submit", "--endpoint", endpoint, *argv])
+    cmd = ["submit", "--endpoint", endpoint]
+    if preamble:
+        cmd += ["--preamble", preamble]
+    return bn_jobspec.main([*cmd, *argv])

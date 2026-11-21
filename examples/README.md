@@ -57,4 +57,6 @@ Direct bdnmc-nova entry points remain valid; this CLI only fills site defaults:
 | Job wrapper | `jobs/two_stage.sh` / `python -m bdnmc_nova.jobspec …` |
 | Collaborator shared root | `$BDNMC_SHARED` (site-local) |
 
-Also see [`uva_two_stage.md`](uva_two_stage.md).
+Also see [`site_smoke.md`](site_smoke.md) (gen smoke recipe), [`two_stage.md`](two_stage.md),
+and [`cross_experiment.md`](cross_experiment.md). Cuboid card for NOvA frames:
+[`data/generic_cuboid_pi0_m005.dat`](data/generic_cuboid_pi0_m005.dat).
