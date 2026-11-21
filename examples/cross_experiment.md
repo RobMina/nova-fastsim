@@ -11,4 +11,5 @@
 | Fibre / WLS tables | [`RobMina/scint-fibre-fastsim`](https://github.com/RobMina/scint-fibre-fastsim) |
 | Scoring / benches | [`RobMina/hep-simbench`](https://github.com/RobMina/hep-simbench) |
 
-Do not merge generators into this repository. The detector simulation stays stock NOvASoft.
+Do not merge generators into this repository. The on-device detector simulation lives in `detsim/`;
+stock NOvASoft is its validation reference.

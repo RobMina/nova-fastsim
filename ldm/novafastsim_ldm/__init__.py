@@ -1,6 +1,7 @@
 """Thin LDM orchestration over BdNMC / bdnmc-nova / optional ldmgen.
 
-Does not reimplement the detector simulation. Generators stay external.
+Runs the stock detector simulation unchanged (the validation reference for novafastsim_detsim).
+Generators stay external.
 """
 
 from . import chain

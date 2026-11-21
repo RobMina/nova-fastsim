@@ -2,7 +2,7 @@
 
 ```text
 nova-fastsim
-  profiles, ND response, examples, site.env
+  profiles, on-device detector simulation (detsim), calibration, examples, site.env
   private: inputs bundle (documented; first release TBD)
         │
 hep-simlib / hep-simbench / hep-endpoints / cryjax
@@ -10,7 +10,17 @@ hep-simlib / hep-simbench / hep-endpoints / cryjax
 BdNMC + ldmgen + bdnmc-nova (+ g4numi-ldm-tools)   ← not merged here
 ```
 
-Phase-2 LDM path (orchestrate only):
+On-device path (target):
+
+```text
+bdnmc_jax rows (device) ─┐
+HEPEVT text ─────────────┼→ novafastsim_detsim.Particles
+                         ▼
+deposits (mean tracks + EM showers) → geometry.pieces → cell response (scint-fibre-fastsim: optics + NOvA APD)
+        → expected Response (differentiable) / sampled Hits → reco (E, θ²) → fits (hepsimlib.fit)
+```
+
+Stock reference path (validation and production until the on-device simulation is validated):
 
 ```text
 novafastsim_ldm generate  →  bdnmc_nova.generate (BdNMC JAX → events.txt)
@@ -20,7 +30,7 @@ ldmgen convert / export   →  RobMina/ldmgen; still sinks through the bdnmc-nov
         │
 novafastsim_ldm events-*  →  validate / head the HEPEVT *input* text
         │
-novafastsim_ldm submit    →  bdnmc_nova.jobspec → stock NOvASoft detector simulation (SL7)
+novafastsim_ldm submit    →  bdnmc_nova.jobspec → stock detector simulation (SL7; the reference arm)
 ```
 
 Phase-2 calib path (parallel; scaffolding):

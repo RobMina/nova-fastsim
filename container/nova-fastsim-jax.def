@@ -22,6 +22,7 @@ From: python:3.12-slim-bookworm
     calib /opt/nova-fastsim/calib
     ldm /opt/nova-fastsim/ldm
     beamline /opt/nova-fastsim/beamline
+    detsim /opt/nova-fastsim/detsim
     LICENSE /opt/nova-fastsim/LICENSE
     NOTICE /opt/nova-fastsim/NOTICE
 
@@ -38,9 +39,9 @@ From: python:3.12-slim-bookworm
     apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates \
         && rm -rf /var/lib/apt/lists/*
     python -m pip install -q --upgrade pip
-    # Install declared deps (numpy, …). JAX CPU wheel for the host image stub.
+    # Install declared deps (numpy, jax, hep-simlib, …). JAX CPU wheel for the host image stub.
     python -m pip install -q /opt/nova-fastsim/core /opt/nova-fastsim/calib \
-        /opt/nova-fastsim/ldm /opt/nova-fastsim/beamline
+        /opt/nova-fastsim/ldm /opt/nova-fastsim/beamline /opt/nova-fastsim/detsim
     python -m pip install -q "jax[cpu]"
     # GPU / hep-simlib pins: fill when the first real image build is authorized.
     find / -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
@@ -49,4 +50,4 @@ From: python:3.12-slim-bookworm
     exec "$@"
 
 %test
-    python -c "import numpy, novafastsim; from novafastsim import dtype; print(novafastsim.__version__, dtype.resolve())"
+    python -c "import numpy, novafastsim, novafastsim_detsim; from novafastsim import dtype; print(novafastsim.__version__, dtype.resolve())"

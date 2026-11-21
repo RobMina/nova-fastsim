@@ -38,5 +38,5 @@ def describe() -> str:
     for i, p in enumerate(PATH, 1):
         lines.append(f"{i}. [{p.stage}] {p.owner}")
         lines.append(f"   {p.notes}")
-    lines += ["", "The detector simulation is never reimplemented here."]
+    lines += ["", "This path runs the stock detector simulation unchanged; the on-device simulation is novafastsim_detsim."]
     return "\n".join(lines)

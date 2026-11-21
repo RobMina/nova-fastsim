@@ -11,9 +11,10 @@ BdNMC (JAX, bdnmc-jax image)
   → python -m novafastsim_ldm submit       # → bdnmc_nova.jobspec → stock detector simulation
 ```
 
-## Orchestrate, do not rewrite
+## Orchestration of the stock chain
 
-- The detector simulation that reads the HEPEVT file is stock NOvASoft. Never reimplemented here.
+- The stock NOvASoft detector simulation that reads the HEPEVT file is the validation reference
+  for the on-device simulation in [`detsim/`](../detsim/README.md); this path runs it unchanged.
 - Generators stay in BdNMC / bdnmc-nova / [`ldmgen`](https://github.com/RobMina/ldmgen).
 - Private ND frame / job configuration: site-local paths today (`$BDNMC_SHARED`); later
   a private inputs bundle ([`setup/README.md`](../setup/README.md)).
