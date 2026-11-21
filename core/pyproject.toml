@@ -12,9 +12,9 @@ dependencies = ["numpy"]
 
 [project.optional-dependencies]
 jax = ["jax"]
-hepsim = ["hep-simlib @ git+https://github.com/RobMina/hep-simlib.git"]
+hepsim = ["hep-simlib @ git+https://github.com/RobMina/hep-simlib.git@b5868350f789f49dfc174110e72d55a40758de67"]
 # hep-simbench for benchmarks/hepsimbench_nd.py synthetic dry-run
-bench = ["hep-simbench @ git+https://github.com/RobMina/hep-simbench.git"]
+bench = ["hep-simbench @ git+https://github.com/RobMina/hep-simbench.git@5d3eab140474f29301269df19bebec0cd387a261"]
 test = ["pytest"]
 
 [tool.setuptools.packages.find]
