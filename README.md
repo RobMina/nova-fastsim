@@ -17,8 +17,10 @@ or results.
 | `core/` profile + `NOVA_DEVICE_FLOAT` | present; synthetic pytest |
 | `ldm/` thin orchestration | **phase 2+**: `novafastsim_ldm` → bdnmc-nova; [`ldmgen`](https://github.com/RobMina/ldmgen) library bridge (`[ldmgen]` extra) |
 | `core/` inputs | `python -m novafastsim.inputs` `validate` / `check` for `nova-fastsim-inputs` manifests |
-| `calib/`, `beamline/` | package stubs |
+| `calib/` | scaffolding: `novafastsim_calib` bank layout + optional fibre probe |
+| `beamline/` | package stub |
 | `examples/` | CLI + site two-stage docs |
+| `ldm/` HEPEVT helpers | `events-info` / `events-head` (validate TextFileGen *input* text; stock art module untouched) |
 | `benchmarks/hepsimbench_nd.py` | hep-simbench stub (`novafastsim[bench]`) |
 | `container/nova-fastsim-jax.def` | stub (JAX host — **not** SL7; no SIF build yet) |
 | `nova-fastsim-inputs` | documented + schema checker; first release not cut |
@@ -31,8 +33,8 @@ Shared event record: `<private-nova-wiki>/bdnmc/shared-event-record`.
 
 ```text
 core/          novafastsim — profile, dtype, site helpers
-calib/         novafastsim_calib — hep-simlib banks under the nova profile (stub)
-ldm/           novafastsim_ldm — thin BdNMC / ldmgen / bdnmc-nova orchestration
+calib/         novafastsim_calib — bank layout scaffolding + optional fibre probe
+ldm/           novafastsim_ldm — thin BdNMC / ldmgen / bdnmc-nova orchestration + HEPEVT helpers
 beamline/      novafastsim_beamline — flux hooks (stub)
 examples/      LDM chain CLI docs
 benchmarks/    hep-simbench ND stub
@@ -66,6 +68,7 @@ git clone https://github.com/RobMina/nova-fastsim.git && cd nova-fastsim
 python3 -m venv .venv && .venv/bin/pip install -q -e 'core[test]' -e calib -e ldm -e beamline
 .venv/bin/python -m pytest -q
 .venv/bin/python -m novafastsim_ldm describe
+.venv/bin/python -m novafastsim_calib describe
 ```
 
 For generation / submit against a real site:
@@ -74,7 +77,9 @@ For generation / submit against a real site:
 .venv/bin/pip install -q -e 'ldm[chains,ldmgen]'   # bdnmc-nova + bdnmc-jax + ldmgen
 cp site.env.example site.env   # fill paths
 .venv/bin/python -m novafastsim_ldm generate --trials 1024
+.venv/bin/python -m novafastsim_ldm events-info events.txt   # validate HEPEVT before sim
 .venv/bin/python -m novafastsim_ldm ldmgen-status
+.venv/bin/python -m novafastsim_calib status
 ```
 
 
