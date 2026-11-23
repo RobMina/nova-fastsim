@@ -30,6 +30,12 @@ TEST_BINS = np.arange(0.0, 400.0 + 1e-9, 20.0)
 FIT_MIN_MEV = 2.0
 
 
+def mass_mev(pdg):
+    """Rest mass (MeV) of each PDG code (detsim's particle table; 0 for codes it does not know)."""
+    from novafastsim_detsim.particles import MASS
+    return np.array([MASS.get(abs(int(q)), 0.0) for q in np.ravel(pdg)]).reshape(np.shape(pdg))
+
+
 def load(a, which):
     """Selected events of the chunks in ``which`` (train/test): stock tables, matched particles, per-event truth."""
     import jax
@@ -42,7 +48,8 @@ def load(a, which):
         p = particles.from_hepevt(hf.read_text())
         hep_rows = d["ev_evt"].astype(int) - 1
         mom = np.asarray(p.momentum)[hep_rows, 0]
-        if not np.allclose(np.sqrt(np.sum(mom ** 2, -1) + 0.511 ** 2) / 1000.0, d["ev_eE"], rtol=1e-4):
+        m = mass_mev(np.asarray(p.pdg)[hep_rows, 0])
+        if not np.allclose(np.sqrt(np.sum(mom ** 2, -1) + m ** 2) / 1000.0, d["ev_eE"], rtol=1e-4):
             raise SystemExit(f"{sf}: stock events do not match {hf}")
         s = D.selected(d)
         stock.append((d, np.flatnonzero(s)))
@@ -65,18 +72,18 @@ def distance(geo, plane, view, w):
     return np.clip(half - sign * (w - geo["wc"][plane]), 0.0, 2.0 * half)
 
 
-def stock_hits(stock, geo, group=32):
+def stock_hits(stock, geo, group=32, n_planes=192):
     """Per signal hit: event index, PE, true Birks MeV, distance, ADC, and the FLS Birks MeV of the other cells on the
     hit's front-end board (``group`` cells of its plane); per event: n signal hits, signal PE, E, noise."""
     hits, evs = [], []
     k = 0
     for d, rows in stock:
         for row in rows:
-            s = (d["hit_row"] == row) & (d["hit_plane"] < 192)
+            s = (d["hit_row"] == row) & (d["hit_plane"] < n_planes)
             sig = s & (d["hit_true_e"] > 0)
             noise = s & (d["hit_true_e"] <= 0)
             pl, vw = d["hit_plane"][sig], d["hit_view"][sig].astype(int)
-            dm = (d["dep_row"] == row) & (d["dep_plane"] < 192)
+            dm = (d["dep_row"] == row) & (d["dep_plane"] < n_planes)
             bkey = d["dep_plane"][dm].astype(np.int64) * 1000 + d["dep_cell"][dm] // group
             bsum = {}
             for kk, ee in zip(bkey.tolist(), (d["dep_edep_birks"][dm] * 1000.0).tolist()):
@@ -172,7 +179,8 @@ def detsim_hits(det, params, parts, geo, dtype, batch, seed):
             vw = geo["view"][pl]
             w = axis_w(vtx[k], mom[k], geo["z"][pl], vw)
             hits.append(np.c_[np.full(sig.sum(), ev), pe[k][sig], evis[k][sig], distance(geo, pl, vw, w)])
-            e_true = float(np.sqrt(np.sum(mom[k] ** 2) + 0.511 ** 2)) / 1000.0
+            m = float(mass_mev(np.asarray(sub.pdg)[k, 0]))
+            e_true = float(np.sqrt(np.sum(mom[k] ** 2) + m ** 2)) / 1000.0
             evs.append((sig.sum(), pe[k][sig].sum(), e_true, 0, 0.0))
     return np.concatenate(hits), np.array(evs)
 
@@ -224,7 +232,7 @@ def main(argv=None) -> int:
 
     st_train, _ = load(a, "train")
     grp = det.settings.apd_group or 32
-    h_tr, e_tr = stock_hits(st_train, geo, grp)
+    h_tr, e_tr = stock_hits(st_train, geo, grp, g.n_planes)
     h_fit = h_tr if a.fit_max_adc is None else h_tr[h_tr[:, 4] < a.fit_max_adc]
     if a.fit_quiet_mev is not None:
         h_fit = h_fit[h_fit[:, 5] < a.fit_quiet_mev]
@@ -240,7 +248,7 @@ def main(argv=None) -> int:
     p_fit.update(post_hoc)
 
     st_test, parts = load(a, "test")
-    h_te, e_te = stock_hits(st_test, geo, grp)
+    h_te, e_te = stock_hits(st_test, geo, grp, g.n_planes)
     ref = a.out / "reference" / "D1-L2"
     (ref / "stock").mkdir(parents=True, exist_ok=True)
     (ref / "stock" / "hists.json").write_text(json.dumps(l2_hists(h_te, e_te, rng)))

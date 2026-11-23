@@ -1,0 +1,25 @@
+{
+  "comment": "D1 joint electron + muon light-curve refit (study F1c), declared 2026-11-23 before the fit ran and before any of its test comparisons. Not blind: the muon checks (study MU0) and their post-hoc diagnostic showed that stock has less light in the 20 cm nearest the readout, which electrons barely sample and F1b's monotone table cannot produce, and that the main planes' through-depth sign from the electron replay was wrong. The record carries this file's sha256.",
+  "samples": {
+    "electrons": "the replay electrons, train chunks 0-9 (fit) and test chunks 10-19 (tests), as criteria.json",
+    "muons": "the muon guns, train chunks 0-9 and test chunks 10-19, as muon_checks_criteria.json (primary truth from the HepEVT chunks)",
+    "detector": "the ND description with the muon catcher for both samples",
+    "signs": "the corrected frame (main-plane s_z = -1 from the muon time order; catcher signs from MU0's C1 fit)",
+    "events": "a fixed stride subset of at most 1000 events per sample, float64"
+  },
+  "light_fit": {
+    "distance": "per cell, the distance to the readout from the energy-weighted long-axis position of the cell's own stock deposits, the same in both arms (the replay uses those deposits); level-2 test histograms keep criteria.json's axis distance",
+    "stock_target": "per sample, signal-hit PE per true Birks MeV in 10 cm bins of that distance, hits above 2 MeV, ADC below 3000, quiet boards below 20 MeV of other cells' energy; errors by the delta method over events",
+    "model": "the replay's expected photoelectrons over visible energy per cell with the same energy and quiet-board cuts and expected charge below the ADC-3000 equivalent; replay energy EdepBirks with quenching off",
+    "table": "knots at 0, 10, 20, 40, 60, ..., 400 cm; the 0 and 10 cm values free (non-negative), the values from 20 cm on non-increasing (cumulative non-negative increments from the far end); weighted non-negative linear least squares on the electron and muon residuals stacked; the yield is the 20 cm value and the collection is normalised there",
+    "two_pass": "the ADC-equivalent cut evaluated at the F1b curve, then once more at the first pass"
+  },
+  "saturation_and_crosstalk": "the alternation of frontend_replay_criteria.json on the electron replay with the new light curve, starting from F1b's values",
+  "tests": {
+    "electron_replay_L2": "level 2 on electron test chunks with replayed deposits and the F1c front end, both floats",
+    "electron_detsim_L2": "level 2 on electron test chunks with detsim's own deposits and the F1c front end, both floats",
+    "muon_replay_L2": "MU0's C3 with the F1c front end, both floats",
+    "muon_detsim_L2": "MU0's baseline with the F1c front end, reported, not a pass line",
+    "flag_rule": "as criteria.json"
+  }
+}

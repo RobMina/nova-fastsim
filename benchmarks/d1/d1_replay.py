@@ -37,15 +37,21 @@ def description_arrays(path):
     desc = json.loads(Path(path).read_text())
     pl = desc["planes"]
     k = desc["constants"]
-    return {"z": np.array([p["z"] for p in pl]), "view": np.array([p["view"] for p in pl], int),
-            "u": np.array([p["u"] for p in pl]), "lc": np.array([p["long_centre"] for p in pl]),
-            "depth": float(k["cell_depth"])}
+    C = max(len(p["u"]) for p in pl)
+    u = np.array([list(p["u"]) + [np.nan] * (C - len(p["u"])) for p in pl])
+    return {"z": np.array([p["z"] for p in pl]), "view": np.array([p["view"] for p in pl], int), "u": u,
+            "lc": np.array([p["long_centre"] for p in pl]), "depth": float(k["cell_depth"]),
+            "catcher": np.array([bool(p.get("muon_catcher", False)) for p in pl])}
 
 
 def to_world(g, plane, cell, X, Y, Z, signs):
-    """World points ``[n, 3]`` of local points; ``signs[view] = (s_u, s_z, s_w)``. Plane z is mid-depth."""
+    """World points ``[n, 3]`` of local points; ``signs[view] = (s_u, s_z, s_w)``, and ``signs["mc"][view]`` for the
+    muon-catcher planes when given. Plane z is mid-depth."""
     view = g["view"][plane]
     s = np.array([signs[0], signs[1]])[view]                        # [n, 3]
+    if "mc" in signs:
+        smc = np.array([signs["mc"][0], signs["mc"][1]])[view]
+        s = np.where(g["catcher"][plane][:, None], smc, s)
     u = g["u"][plane, cell] + s[:, 0] * X
     z = g["z"][plane] + s[:, 1] * Y
     w = g["lc"][plane] + s[:, 2] * Z
@@ -150,8 +156,11 @@ def run_signs(a, g):
 
 
 def load_signs(path):
-    s = json.loads(Path(path).read_text())["signs"]
-    return {int(k): tuple(v) for k, v in s.items()}
+    j = json.loads(Path(path).read_text())
+    out = {int(k): tuple(v) for k, v in j["signs"].items()}
+    if "signs_mc" in j:
+        out["mc"] = {int(k): tuple(v) for k, v in j["signs_mc"].items()}
+    return out
 
 
 def run_closure(a, g, det, params):
@@ -207,7 +216,7 @@ def run_l2(a, g, det, params):
            "wc": np.asarray(lay.w_centre), "length": 2.0 * np.asarray(lay.half_len), "readout": gg.readout_end}
     grp = det.settings.apd_group or 32
     st_train, _ = L2.load(a, "train")
-    h_tr, e_tr = L2.stock_hits(st_train, geo, grp)
+    h_tr, e_tr = L2.stock_hits(st_train, geo, grp, gg.n_planes)
     h_fit = h_tr if a.fit_max_adc is None else h_tr[h_tr[:, 4] < a.fit_max_adc]
     if a.fit_quiet_mev is not None:
         h_fit = h_fit[h_fit[:, 5] < a.fit_quiet_mev]
@@ -225,7 +234,7 @@ def run_l2(a, g, det, params):
     rng = (0.0, float(np.quantile(pe_frac, 0.995)) * 1.1)
 
     st_test, _ = L2.load(a, "test")
-    h_te, e_te = L2.stock_hits(st_test, geo, grp)
+    h_te, e_te = L2.stock_hits(st_test, geo, grp, gg.n_planes)
     ref = a.out / "reference" / "D1-L2R"
     (ref / "stock").mkdir(parents=True, exist_ok=True)
     (ref / "stock" / "hists.json").write_text(json.dumps(L2.l2_hists(h_te, e_te, rng)))

@@ -1,0 +1,24 @@
+{
+  "comment": "D1 muon arm, first checks (study MU0), declared 2026-11-23 before any muon gun output was compared. They need no new muon physics: they test the muon-catcher description, the stock-deposit replay on muons, and whether the front end fitted on electrons (study F1b) transfers to muons. The record of every check carries this file's sha256.",
+  "sample": {
+    "chunks": "gun chunks 0-19 of guns.json (mu- and mu+, kinetic energy log-uniform 0.1-2.5 GeV); chunks 0-9 train, 10-19 test",
+    "selection": "as criteria.json (vertex box and 0.1-10 GeV total energy)",
+    "detector": "the private ND description with the muon catcher (nova-fastsim-inputs nova/detector/nd_S26-07-01_mc.json); every plane, main and catcher, is used in both arms"
+  },
+  "C1_catcher_frame": {
+    "what": "the local-to-world axis signs of the catcher planes, refitted separately from the main planes (whose signs come from the electron replay): per catcher view, the (s_u, s_z, s_w) of the 8 combinations that minimises the median transverse distance between time-consecutive deposits of the same muon (pdg +-13) in which at least one deposit is in a catcher plane, on the train chunks; with the table of all 8",
+    "plane_order": "on the test chunks, the fraction of time-consecutive muon deposit pairs whose world z does not decrease by more than 1 cm",
+    "pass": "the best combination's median distance below 5 cm and at least 2x smaller than the next-best combination that flips s_u or s_w; plane-order fraction above 0.98"
+  },
+  "C2_replay_closure": {
+    "what": "replay_criteria.json's closure on the muon test chunks with all planes (catcher included) and the C1 signs, both floats",
+    "pass": "median own-cell fraction above 0.99 and median total ratio within 1 % of 1"
+  },
+  "C3_front_end_transfer": {
+    "what": "level 2 of criteria.json on the muon test chunks with replayed stock deposits (EdepBirks, quenching off) and the F1b front end with no refit (frontend_replay_b_criteria.json's fit, --no-optics-fit --birks-energy), stock hits on every plane, both floats; same histograms, statistics and flag rule",
+    "reading": "a histogram unflagged here means the electron-fitted front end describes muon hits; a flagged one is a front-end difference that electrons did not constrain (or a front-end effect electrons hid)",
+    "expectation_stated_in_advance": "open; muon hits sit mostly at one minimum-ionising charge per cell and near quiet boards, so crosstalk and saturation matter little and the light curve matters most"
+  },
+  "baseline_not_scored_as_a_pass_line": "level 2 with detsim's own muon deposits (straight tracks with mean continuous loss, no multiple scattering, straggling or decays) and the same front end, reported to show what the muon physics still has to add",
+  "amendment": "2026-11-23, after a first run that computed nothing (every check found no selected events) and before any comparison: D1HitDump fills its primary-particle fields only for a status-1 electron, so the gun samples carry no primary truth. The primary of each gun event is the HepEVT particle the generator read, so d1_truth_from_hepevt.py fills those fields from the gun chunks (matching on the event number) in patched copies of the converted files, which every check then uses."
+}

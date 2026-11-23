@@ -53,10 +53,13 @@ def main(argv=None) -> int:
     ap.add_argument("--params", type=Path, nargs="*", default=[])
     ap.add_argument("--max-events", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=31)
+    ap.add_argument("--optics-from", type=Path,
+                    help="take the light curve (yield, optics_table) from this file and fit only saturation / crosstalk")
+    ap.add_argument("--criteria", type=Path, help="the criteria file this run is declared under (recorded)")
     ap.add_argument("--monotone", action="store_true",
                     help="collection non-increasing in distance (study F1b, frontend_replay_b_criteria.json)")
     a = ap.parse_args(argv)
-    crit = HERE / "frontend_replay_b_criteria.json" if a.monotone else CRIT
+    crit = a.criteria or (HERE / "frontend_replay_b_criteria.json" if a.monotone else CRIT)
     t0 = time.time()
     g = RP.description_arrays(a.description)
     signs = RP.load_signs(a.signs)
@@ -144,15 +147,27 @@ def main(argv=None) -> int:
             sol, rnorm = nnls(M, R[ok] / E[ok])
         return sol, float(rnorm ** 2), int(ok.sum())
 
-    g0 = float(params["optics.yield_per_mev"]) * np.asarray(fibre_transport(jnp.asarray(km), gg.cell(),
-                                                                           config.optics(params))[0])
-    g1, chi_a, nbins = optics_fit(g0)
-    g2, chi_b, _ = optics_fit(g1)
-    yield_fit = float(g2[0]) if (a.monotone or g2[0] > 0) else float(np.max(g2))   # monotone: g2[0] is the maximum
-    collection = g2 / yield_fit
+    if a.optics_from is not None:
+        src = json.loads(a.optics_from.read_text())
+        yield_fit = float(src["params"]["optics.yield_per_mev"])
+        km = np.asarray(src["optics_table"]["distance"], float)
+        collection = np.asarray(src["optics_table"]["collection"], float)
+        delay = np.asarray(src["optics_table"]["delay"], float)
+        chi_a = chi_b = None
+        nbins = src.get("optics_fit", {}).get("bins")
+        knots_cm = (km / 10.0).tolist()
+    else:
+        g0 = float(params["optics.yield_per_mev"]) * np.asarray(fibre_transport(jnp.asarray(km), gg.cell(),
+                                                                               config.optics(params))[0])
+        g1, chi_a, nbins = optics_fit(g0)
+        g2, chi_b, _ = optics_fit(g1)
+        yield_fit = float(g2[0]) if (a.monotone or g2[0] > 0) else float(np.max(g2))   # monotone: g2[0] is the maximum
+        collection = g2 / yield_fit
+        knots_cm = KNOTS_CM.tolist()
     params["optics.yield_per_mev"] = yield_fit
     params["optics_table"] = CellTable(km, collection, delay)
-    print(f"optics: yield {yield_fit:.2f}, chi2 {chi_a:.1f} -> {chi_b:.1f} over {nbins} bins", flush=True)
+    print(f"optics: yield {yield_fit:.2f}, chi2 {chi_a} -> {chi_b} over {nbins} bins"
+          + (f" (from {a.optics_from.name})" if a.optics_from else ""), flush=True)
 
     # ---- saturation and crosstalk on the replay
     groups = sim.apd_groups(det)
@@ -233,7 +248,8 @@ def main(argv=None) -> int:
         "settings": {"apd_group": det.settings.apd_group},
         "params": {"optics.yield_per_mev": yield_fit, **state},
         "optics_table": {"distance": km.tolist(), "collection": collection.tolist(), "delay": delay.tolist()},
-        "optics_fit": {"chi2_pass1": chi_a, "chi2_pass2": chi_b, "bins": nbins, "knots_cm": KNOTS_CM.tolist()},
+        "optics_fit": {"chi2_pass1": chi_a, "chi2_pass2": chi_b, "bins": nbins, "knots_cm": knots_cm,
+                       "from": a.optics_from.name if a.optics_from else None},
         "rounds": rounds, "seconds": time.time() - t0,
         "converged": bool(len(rounds) > 1 and all(abs(rounds[-1][n] - rounds[-2][n])
                                                   <= TOL * max(abs(rounds[-2][n]), 1e-12) for n in state)),
