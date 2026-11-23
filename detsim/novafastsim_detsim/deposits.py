@@ -1,7 +1,8 @@
 """Primary particles to energy-deposit segments: expected (mean) models, differentiable in the kinematics.
 
 - Charged tracks (mu, pi, K, p): straight line, mean continuous loss from the range table, column density
-  ``rho_stop`` inside the detector envelope and none outside. No multiple scattering or hadronic interactions.
+  ``rho_stop`` inside the plane mixture (the geometry's region boxes), ``rho_abs * stop_abs`` inside absorber boxes
+  and none elsewhere. No multiple scattering or hadronic interactions.
 - Electromagnetic showers (e+-, photon): gamma-distribution longitudinal profile (Longo-Sestili form, t_max =
   ln(E/E_c) + C + ``shower_tmax_shift`` with C = -0.5 for electrons and +0.5 for photons) and a two-component radial
   profile of the Grindhammer-Peters form, both in units of the mixture's X0 and Moliere radius; integrated by a fixed
@@ -23,7 +24,7 @@ import jax.numpy as jnp
 from jax.scipy.special import gammainc
 
 from .config import C_LIGHT, Detector
-from .geometry import box_interval
+from .geometry import length_in
 from .particles import Particles, mass_of, model_of, species_index
 
 TRACK, SHOWER = 0, 1
@@ -58,9 +59,12 @@ def track_segments(det: Detector, params, tables, p: Particles) -> Segments:
     T0 = E - m
     R0 = jax.vmap(jnp.interp)(T0, T_tab[sp], R_tab[sp])
     s = jnp.arange(s_.n_track + 1, dtype=dt) * s_.track_step                  # [n+1]
-    b0, b1 = box_interval(det, p.vertex, d)                                    # along s (d is unit)
-    inbox = jnp.maximum(jnp.minimum(s[None, :], b1[:, None]) - jnp.maximum(b0, 0.0)[:, None], 0.0)
-    X = params["rho_stop"] * inbox
+    g = det.geometry
+    v = p.vertex[:, None, :]
+    dd = d[:, None, :]
+    in_mix = length_in(g.region_boxes(), v, dd, 0.0, s[None, :])                 # [N, n+1] cm (d is unit)
+    in_abs = length_in(g.absorbers, v, dd, 0.0, s[None, :])
+    X = params["rho_stop"] * in_mix + params["rho_abs"] * params["stop_abs"] * in_abs
     R = jnp.maximum(R0[:, None] - X, 0.0)
     T = jax.vmap(jnp.interp)(R, R_tab[sp], T_tab[sp])
     edep = T[:, :-1] - T[:, 1:]

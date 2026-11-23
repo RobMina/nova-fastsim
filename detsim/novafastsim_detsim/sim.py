@@ -37,7 +37,7 @@ class Response(NamedTuple):
     time: object    # ns, light-weighted mean arrival
     adc: object     # expected DCS peak
     p_hit: object   # probability that the cell is read out
-    diag: dict      # e_total, e_scint, e_inert, e_outside, overflow
+    diag: dict      # e_total, e_scint, e_inert, e_absorber, e_outside, overflow
 
 
 class Hits(NamedTuple):
@@ -79,7 +79,8 @@ def accumulate(det: Detector, params, seg: deposits.Segments) -> Response:
     rs = params["rho_scint"]
     ri = params["rho_inert"] * params["stop_inert"] * jnp.where(seg.kind == deposits.SHOWER,
                                                                params["shower_inert_scale"], 1.0)
-    denom = rs * l_scint + ri * l_inert
+    ra = params["rho_abs"] * params["stop_abs"]
+    denom = rs * l_scint + ri * l_inert + ra * pc.len_abs
     has = (denom > 0) & seg.mask
     e_unit = jnp.where(has, seg.edep / jnp.where(has, denom, 1.0), 0.0)        # MeV per scint-equivalent g/cm^2
     e_piece = e_unit[:, None] * rs * pc.length
@@ -107,6 +108,7 @@ def accumulate(det: Detector, params, seg: deposits.Segments) -> Response:
         e_total=jnp.sum(jnp.where(m, seg.edep, 0.0)),
         e_scint=jnp.sum(edep),
         e_inert=jnp.sum(e_unit * ri * l_inert),
+        e_absorber=jnp.sum(e_unit * ra * pc.len_abs),
         e_outside=jnp.sum(jnp.where(m & ~has, seg.edep, 0.0)),
         overflow=jnp.sum(m & pc.overflow & (seg.edep > 0)),
     )

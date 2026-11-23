@@ -54,7 +54,7 @@ def to_world(g, plane, cell, X, Y, Z, signs):
     return np.stack([x, y, z], axis=-1)
 
 
-def segments_world(g, f, sel, signs):
+def segments_world(g, f, sel, signs, energy="edep"):
     """p0, p1 [n, 3] (cm), edep (MeV), t (ns) for FLS rows ``sel``; point-like pieces get 2e-3 cm along the cell."""
     pl, ce = f["fls_plane"][sel], f["fls_cell"][sel]
     p0 = to_world(g, pl, ce, f["fls_x0"][sel], f["fls_y0"][sel], f["fls_z0"][sel], signs)
@@ -65,7 +65,7 @@ def segments_world(g, f, sel, signs):
         ax = np.where(view[:, None] == 0, np.array([0.0, 1.0, 0.0]), np.array([1.0, 0.0, 0.0]))
         mid = 0.5 * (p0[short] + p1[short])
         p0[short], p1[short] = mid - POINT_HALF * ax, mid + POINT_HALF * ax
-    return p0, p1, f["fls_edep"][sel] * 1000.0, f["fls_t"][sel]
+    return p0, p1, f[f"fls_{energy}"][sel] * 1000.0, f["fls_t"][sel]
 
 
 def fit_signs(g, fls_list):
@@ -104,7 +104,7 @@ def fit_signs(g, fls_list):
 
 # ------------------------------------------------------------------------------------------- replay
 
-def batches(g, f, rows, signs, dtype, size=25):
+def batches(g, f, rows, signs, dtype, size=25, energy="edep"):
     """Padded segment batches ``(rows, Segments [B, S])`` for the event rows of one FLS file."""
     import jax.numpy as jnp
     from novafastsim_detsim import deposits
@@ -116,7 +116,7 @@ def batches(g, f, rows, signs, dtype, size=25):
         for r in rb:
             sel = order[np.searchsorted(fr, r, "left"):np.searchsorted(fr, r, "right")]
             sel = sel[f["fls_plane"][sel] < len(g["z"])]
-            segs.append(segments_world(g, f, sel, signs))
+            segs.append(segments_world(g, f, sel, signs, energy))
         S = max(256, int(np.ceil(max(len(s[2]) for s in segs) / 256.0)) * 256)
         B = len(rb)
         p0, p1 = np.zeros((B, S, 3)), np.zeros((B, S, 3))
@@ -204,7 +204,7 @@ def run_l2(a, g, det, params):
     gg = det.geometry
     lay = layout(det, jnp.float64)
     geo = {"z": np.asarray(lay.z_lo) + 0.5 * gg.cell_depth, "view": np.asarray(lay.view),
-           "wc": np.asarray(lay.w_centre), "length": gg.cell_length, "readout": gg.readout_end}
+           "wc": np.asarray(lay.w_centre), "length": 2.0 * np.asarray(lay.half_len), "readout": gg.readout_end}
     grp = det.settings.apd_group or 32
     st_train, _ = L2.load(a, "train")
     h_tr, e_tr = L2.stock_hits(st_train, geo, grp)
@@ -213,8 +213,14 @@ def run_l2(a, g, det, params):
         h_fit = h_fit[h_fit[:, 5] < a.fit_quiet_mev]
     R, E, _ = L2.ratio_profile(h_fit, L2.FIT_BINS, len(e_tr), L2.FIT_MIN_MEV)
     centres = 0.5 * (L2.FIT_BINS[1:] + L2.FIT_BINS[:-1])
-    optics = L2.fit_optics(det, params, R, E, centres)
-    params.update({k: v for k, v in optics.items() if k.startswith("optics.")})
+    if a.no_optics_fit:
+        optics = {"from": "fit files", **{k: float(params[k]) for k in params if k.startswith("optics.")}}
+    else:
+        optics = L2.fit_optics(det, params, R, E, centres)
+        params.update({k: v for k, v in optics.items() if k.startswith("optics.")})
+    energy = "edep_birks" if a.birks_energy else "edep"
+    if a.birks_energy:
+        params["optics.birks_kb"], params["optics.birks_kc"] = 0.0, 0.0
     pe_frac = e_tr[:, 1] / e_tr[:, 2]
     rng = (0.0, float(np.quantile(pe_frac, 0.995)) * 1.1)
 
@@ -243,7 +249,7 @@ def run_l2(a, g, det, params):
         hits, evs, ev_i, bk = [], [], 0, []
         for (cid, path), (d, rows) in zip(test_fls, st_test):
             f = dict(np.load(path))
-            for rb, seg in batches(g, f, rows, signs, dt):
+            for rb, seg in batches(g, f, rows, signs, dt, energy=energy):
                 keys = jax.vmap(lambda j: jax.random.fold_in(jax.random.PRNGKey(a.seed), j))(
                     jnp.asarray(cid * 100000 + rb))
                 evis, edep, pe, hit = (np.asarray(x) for x in respond(seg, keys))
@@ -268,6 +274,7 @@ def run_l2(a, g, det, params):
     (a.out / "scores.json").write_text(json.dumps(res, indent=1, default=float))
     rec = {"criteria_sha256": hashlib.sha256(CRIT.read_bytes()).hexdigest(), "signs": a.signs.name, "fits": fits,
            "optics": optics, "fit_max_adc": a.fit_max_adc, "fit_quiet_mev": a.fit_quiet_mev, "seed": a.seed,
+           "energy": energy, "optics_table": "optics_table" in params,
            "test_events": int(len(e_te)), "birks_ratio_replay_median": birks,
            "L2R": {dt: {h["hist"]: {k: h[k] for k in ("chi2ndf", "ndf", "p", "flag")} for h in r["hists"]}
                    for dt, r in res["workflows"]["D1-L2R"].items()}}
@@ -292,6 +299,9 @@ def main(argv=None) -> int:
     ap.add_argument("--fit-max-adc", type=float)
     ap.add_argument("--fit-quiet-mev", type=float)
     ap.add_argument("--seed", type=int, default=29)
+    ap.add_argument("--no-optics-fit", action="store_true", help="l2: keep the optics of the fit files")
+    ap.add_argument("--birks-energy", action="store_true",
+                    help="l2: replay stock EdepBirks with quenching off (frontend_replay_criteria.json)")
     a = ap.parse_args(argv)
     if len(a.fls) != len(a.chunk_ids):
         raise SystemExit("--fls and --chunk-ids need the same length")

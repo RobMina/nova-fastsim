@@ -1,0 +1,15 @@
+{
+  "comment": "D1 front end fitted on replayed stock deposits (study F1), declared 2026-11-22 before any of its fits ran and before any test comparison of it. The replay (replay_criteria.json) separates the front end from detsim's deposit model; here the front end is refitted on it. Not blind: the replay's level-2 residuals (attenuation shape at both cell ends, saturated-hit charge, replay over-quenching) were seen on test chunks. The record carries this file's sha256.",
+  "replay_energy": "each replayed piece carries stock's EdepBirks with Birks quenching switched off (optics.birks_kb = birks_kc = 0 in the replay), so the replay's visible energy per cell equals stock's; detsim's own deposit model keeps its quenching",
+  "fits_on_train": {
+    "events": "train chunks 0-9, a fixed stride subset of at most 1500 events, float64, fixed seeds",
+    "optics": "a tabulated collection curve (CellTable) with knots every 20 cm from 0 to 400 cm along the cell, and the yield, fitted to stock's signal-hit PE per true Birks MeV against distance to the readout (10 cm bins, hits above 2 MeV, ADC below 3000, quiet boards below 20 MeV of other cells' energy, the level-2 axis distance in both arms); detsim side: the replay's expected photoelectrons per cell over its visible energy for cells passing the same energy and quiet-board cuts and with expected charge below the ADC-3000 equivalent; weighted non-negative linear least squares (the expected charge is linear in the table values); delays from the analytic transport",
+    "saturation_and_crosstalk": "apd.sat_recovery (root find on the median charge of saturated hits, as saturation_criteria.json) and apd.crosstalk (efficiency table against board activity, as crosstalk_criteria.json), alternated on the replay with the fitted optics, adc_per_pe and the ceiling from the chain's final saturation fit; stop when both change by less than 1 % or after 4 rounds",
+    "kept": "deposit and stochastic fits, adc_per_pe, adc_max, adc_max_sigma, apd_group 32"
+  },
+  "test": {
+    "replay_L2": "level 2 on test chunks 10-19 with the replayed deposits and the refitted front end (no further optics fit), both floats",
+    "detsim_L2": "level 2 on test chunks 10-19 with detsim's own deposits (deposit + stochastic fits) and the refitted front end (d1_l2.py --no-optics-fit), both floats",
+    "flag_rule": "as criteria.json"
+  }
+}

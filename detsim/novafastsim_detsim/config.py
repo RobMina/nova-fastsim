@@ -53,6 +53,9 @@ class Geometry:
     cell_w: tuple | None = None
     long_centre: tuple | None = None
     length: float | None = None
+    plane_length: tuple | None = None   # tables only: per-plane cell length (planes of shorter cells), default length
+    regions: tuple | None = None        # boxes (x0, x1, y0, y1, z0, z1) of the plane mixture; default: one envelope
+    absorbers: tuple = ()               # boxes (x0, x1, y0, y1, z0, z1) of absorber material (e.g. steel plates)
 
     def __post_init__(self):
         tabs = (self.plane_z, self.plane_view, self.cell_u, self.cell_w, self.long_centre, self.length)
@@ -69,6 +72,14 @@ class Geometry:
                 raise ValueError("geometry tables: plane_z must increase")
             if any(b <= a for r in self.cell_u for a, b in zip(r[:-1], r[1:])):
                 raise ValueError("geometry tables: cell_u must increase within each plane")
+            if self.plane_length is not None and (len(self.plane_length) != P or min(self.plane_length) <= 0):
+                raise ValueError(f"geometry tables: plane_length needs {P} positive entries")
+        elif self.plane_length is not None:
+            raise ValueError("plane_length needs the geometry tables")
+        for name, boxes in (("regions", self.regions or ()), ("absorbers", self.absorbers)):
+            for b in boxes:
+                if len(b) != 6 or not (b[0] < b[1] and b[2] < b[3] and b[4] < b[5]):
+                    raise ValueError(f"{name}: boxes are (x0, x1, y0, y1, z0, z1) with lo < hi, got {b}")
 
     @property
     def tabulated(self) -> bool:
@@ -90,14 +101,30 @@ class Geometry:
 
     @property
     def cell_length(self) -> float:
-        return float(self.length) if self.tabulated else self.n_cells * self.cell_pitch
+        """The typical (longest) cell length; per plane see :meth:`lengths`."""
+        if self.tabulated:
+            return float(max(self.plane_length)) if self.plane_length is not None else float(self.length)
+        return self.n_cells * self.cell_pitch
+
+    def lengths(self) -> tuple:
+        """Per-plane cell length."""
+        if self.tabulated and self.plane_length is not None:
+            return tuple(float(v) for v in self.plane_length)
+        return (self.cell_length,) * self.n_planes
+
+    def region_boxes(self) -> tuple:
+        """Boxes of the plane mixture (path in them outside scintillator is inert wall); default the envelope."""
+        if self.regions is not None:
+            return tuple(tuple(float(v) for v in b) for b in self.regions)
+        h = self.half_width
+        return ((-h, h, -h, h, self.z_front_edge, self.z_back),)
 
     @property
     def half_width(self) -> float:
         """Half-size of the transverse envelope (covers the cells and their length)."""
         if self.tabulated:
             u = max(max(abs(r[0]) + w[0], abs(r[-1]) + w[-1]) for r, w in zip(self.cell_u, self.cell_w))
-            lc = max(abs(c) for c in self.long_centre) + 0.5 * self.length
+            lc = max(abs(c) + 0.5 * L for c, L in zip(self.long_centre, self.lengths()))
             return max(u, lc)
         return 0.5 * self.cell_length
 
@@ -184,10 +211,11 @@ class Material:
 
 SCINTILLATOR = Material("liquid scintillator (CH2 caricature)", 0.859, 44.77, 93.1, 2.08)
 INERT = Material("PVC", 1.30, 19.63, 50.0, 1.78)
+ABSORBER = Material("steel", 7.874, 13.84, 21.68, 1.451)
 
 
 def derived_params(geometry: Geometry = Geometry(), scint: Material = SCINTILLATOR,
-                   inert: Material = INERT) -> dict:
+                   inert: Material = INERT, absorber: Material = ABSORBER) -> dict:
     """Shower and range constants of the active-region mixture."""
     fs = geometry.scint_fraction
     ms, mi = fs * scint.density, (1.0 - fs) * inert.density
@@ -201,6 +229,8 @@ def derived_params(geometry: Geometry = Geometry(), scint: Material = SCINTILLAT
         rho_inert=inert.density,
         stop_inert=stop_inert,
         rho_stop=ms + mi * stop_inert,
+        rho_abs=absorber.density,                       # absorber boxes (e.g. muon-catcher steel)
+        stop_abs=absorber.stopping / scint.stopping,    # absorber stopping relative to scintillator, per g/cm^2
         x0=x0,
         ec=ec,
         rm=21.2052 * x0 / ec,
@@ -208,9 +238,9 @@ def derived_params(geometry: Geometry = Geometry(), scint: Material = SCINTILLAT
 
 
 def default_params(geometry: Geometry = Geometry(), scint: Material = SCINTILLATOR,
-                   inert: Material = INERT) -> dict:
+                   inert: Material = INERT, absorber: Material = ABSORBER) -> dict:
     """Differentiable parameters (host floats); see docs/detsim.md for meanings and units."""
-    p = derived_params(geometry, scint, inert)
+    p = derived_params(geometry, scint, inert, absorber)
     p.update(
         z_eff=7.0,            # effective Z of the lateral shower parametrisation
         shower_b=0.5,         # longitudinal gamma-profile slope b
@@ -273,20 +303,22 @@ def _merge(cls, base, overrides: dict, where: str):
 
 def from_dict(cfg: dict) -> tuple[Detector, dict]:
     """``{"geometry": {...}, "settings": {...}, "materials": {...}, "params": {...}}`` over the defaults; unknown keys
-    raise. ``materials`` overrides fields of the scintillator and inert :class:`Material` (``{"scintillator": {"density":
-    ..., "x0": ...}, "inert": {...}}``, g/cm3 and g/cm2), from which the derived parameters are computed."""
+    raise. ``materials`` overrides fields of the scintillator, inert and absorber :class:`Material` (``{"scintillator":
+    {"density": ..., "x0": ...}, "inert": {...}, "absorber": {...}}``, g/cm3 and g/cm2), from which the derived
+    parameters are computed."""
     bad = sorted(set(cfg) - {"geometry", "settings", "materials", "params", "comment"})
     if bad:
         raise KeyError(f"unknown detector-config sections: {bad}")
     geom = _merge(Geometry, Geometry(), cfg.get("geometry", {}), "geometry")
     sett = _merge(Settings, Settings(), cfg.get("settings", {}), "settings")
     mats = cfg.get("materials", {})
-    bad = sorted(set(mats) - {"scintillator", "inert"})
+    bad = sorted(set(mats) - {"scintillator", "inert", "absorber"})
     if bad:
         raise KeyError(f"unknown materials: {bad}")
     scint = _merge(Material, SCINTILLATOR, mats.get("scintillator", {}), "material")
     inert = _merge(Material, INERT, mats.get("inert", {}), "material")
-    params = default_params(geom, scint, inert)
+    absorber = _merge(Material, ABSORBER, mats.get("absorber", {}), "material")
+    params = default_params(geom, scint, inert, absorber)
     over = cfg.get("params", {})
     bad = sorted(set(over) - set(params) - {"channel_eff", "optics_table"})
     if bad:
@@ -301,23 +333,41 @@ def tables_from_description(desc: dict) -> dict:
 
     ``{"constants": {"cell_depth", "cell_width_wide", "cell_width_narrow", "web", "wall", "cell_length"},
     "readout_end": [sx, sy], "materials": {"Scintillator": {"density_g_cm3", "radlen_cm"}, "PVC": {...}},
-    "planes": [{"z", "view", "u": [C], "narrow": [C], "long_centre"}, ...]}``
+    "planes": [{"z", "view", "u": [C_p], "narrow": [C_p] or "w": [C_p], "long_centre", optional "length"}, ...],
+    optional "regions": [[x0, x1, y0, y1, z0, z1], ...], optional "absorbers": [{"box": [...], "material"}, ...]}``.
+    Planes with fewer cells are padded with zero-width cells; "Steel" sets the absorber material.
 
     Units cm and g/cm3; ``view`` 0 measures x, 1 measures y. The numbers belong to the description, not to this code."""
     k = desc["constants"]
     planes = desc["planes"]
+    C = max(len(p["u"]) for p in planes)
+    cu, cw = [], []
+    for p in planes:
+        u = [float(v) for v in p["u"]]
+        w = ([float(v) for v in p["w"]] if "w" in p else
+             [float(k["cell_width_narrow"] if n else k["cell_width_wide"]) for n in p["narrow"]])
+        pitch = (u[-1] - u[0]) / max(len(u) - 1, 1)
+        u += [u[-1] + pitch * (j + 1) for j in range(C - len(u))]     # padding cells of zero width (no scintillator)
+        w += [0.0] * (C - len(w))
+        cu.append(u)
+        cw.append(w)
     geom = dict(
-        n_planes=len(planes), n_cells=len(planes[0]["u"]),
+        n_planes=len(planes), n_cells=C,
         cell_width=float(k["cell_width_wide"]), cell_depth=float(k["cell_depth"]), web=float(k["web"]),
         face=float(k["wall"]), readout_end=tuple(int(v) for v in desc.get("readout_end", (1, 1))),
         plane_z=[float(p["z"]) for p in planes], plane_view=[int(p["view"]) for p in planes],
-        cell_u=[[float(u) for u in p["u"]] for p in planes],
-        cell_w=[[float(k["cell_width_narrow"] if n else k["cell_width_wide"]) for n in p["narrow"]] for p in planes],
+        cell_u=cu, cell_w=cw,
         long_centre=[float(p["long_centre"]) for p in planes], length=float(k["cell_length"]),
         first_view=int(planes[0]["view"]),
     )
+    if any("length" in p for p in planes):
+        geom["plane_length"] = [float(p.get("length", k["cell_length"])) for p in planes]
+    if "regions" in desc:
+        geom["regions"] = [[float(v) for v in b] for b in desc["regions"]]
+    if "absorbers" in desc:
+        geom["absorbers"] = [[float(v) for v in b["box"]] for b in desc["absorbers"]]
     materials = {}
-    for name, key in (("Scintillator", "scintillator"), ("PVC", "inert")):
+    for name, key in (("Scintillator", "scintillator"), ("PVC", "inert"), ("Steel", "absorber")):
         m = desc.get("materials", {}).get(name)
         if m is None:
             continue

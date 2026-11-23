@@ -26,7 +26,8 @@ N_LONG, N_LAT = 120, 30
 # ------------------------------------------------------------------------------------------- inputs
 def apply_fit(det, params, paths):
     """Apply fit outputs (``d1_fit_deposits.py``, ``d1_fit_stochastic.py``) in order: each file's ``params`` dict
-    updates ``params`` in place and its optional ``settings`` dict replaces Settings fields. Returns the new detector
+    updates ``params`` in place, its optional ``settings`` dict replaces Settings fields and its optional
+    ``optics_table`` (distance mm, collection, delay ns) becomes ``params["optics_table"]``. Returns the new detector
     and the fits' records for the scoring record."""
     from dataclasses import fields, replace
     recs = []
@@ -42,6 +43,11 @@ def apply_fit(det, params, paths):
         if bad:
             raise SystemExit(f"{path}: unknown settings {bad}")
         det = replace(det, settings=replace(det.settings, **sett))
+        if "optics_table" in fit:
+            from scintfibrefastsim.response import CellTable
+            t = fit["optics_table"]
+            params["optics_table"] = CellTable(np.asarray(t["distance"], float), np.asarray(t["collection"], float),
+                                               np.asarray(t["delay"], float))
         recs.append({"file": path.name, "sha256": hashlib.sha256(raw).hexdigest(),
                      "criteria_sha256": fit.get("criteria_sha256"), "params": fit["params"], "settings": sett})
     return det, recs

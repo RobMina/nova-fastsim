@@ -59,7 +59,8 @@ def axis_w(vtx, mom, z, view):
 
 
 def distance(geo, plane, view, w):
-    half = 0.5 * geo["length"]
+    length = np.asarray(geo["length"], float)
+    half = 0.5 * (length[plane] if length.ndim else length)               # per-plane cell length when tabulated
     sign = np.where(view == 0, geo["readout"][0], geo["readout"][1])
     return np.clip(half - sign * (w - geo["wc"][plane]), 0.0, 2.0 * half)
 
@@ -207,6 +208,8 @@ def main(argv=None) -> int:
                     help="fit outputs (d1_fit_deposits.py, d1_fit_stochastic.py) applied before the optics fit, in order")
     ap.add_argument("--fit-max-adc", type=float,
                     help="train optics fit: only stock hits below this ADC (keeps saturated hits out of the yield)")
+    ap.add_argument("--no-optics-fit", action="store_true",
+                    help="keep the optics of the fit files (e.g. a fitted CellTable) instead of the train optics fit")
     ap.add_argument("--fit-quiet-mev", type=float,
                     help="train optics fit: only stock hits whose board's other cells hold less than this Birks MeV")
     ap.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE",
@@ -217,7 +220,7 @@ def main(argv=None) -> int:
     g = det.geometry
     lay = layout(det, jax.numpy.float64)
     geo = {"z": np.asarray(lay.z_lo) + 0.5 * g.cell_depth, "view": np.asarray(lay.view), "wc": np.asarray(lay.w_centre),
-           "length": g.cell_length, "readout": g.readout_end}
+           "length": 2.0 * np.asarray(lay.half_len), "readout": g.readout_end}
 
     st_train, _ = load(a, "train")
     grp = det.settings.apd_group or 32
@@ -227,7 +230,8 @@ def main(argv=None) -> int:
         h_fit = h_fit[h_fit[:, 5] < a.fit_quiet_mev]
     R, E, _ = ratio_profile(h_fit, FIT_BINS, len(e_tr), FIT_MIN_MEV)
     centres = 0.5 * (FIT_BINS[1:] + FIT_BINS[:-1])
-    fit = fit_optics(det, params, R, E, centres)
+    fit = ({"from": "fit files", **{k: float(params[k]) for k in params if k.startswith("optics.")}}
+           if a.no_optics_fit else fit_optics(det, params, R, E, centres))
     pe_frac = e_tr[:, 1] / e_tr[:, 2]
     rng = (0.0, float(np.quantile(pe_frac, 0.995)) * 1.1)
     p_fit = dict(params)
@@ -255,6 +259,7 @@ def main(argv=None) -> int:
            "noise_test": {"hits_per_event": float(e_te[:, 3].mean()), "pe_per_event": float(e_te[:, 4].mean())},
            "sig_pe_frac_range": rng, "post_hoc_overrides": post_hoc, "fits": deposit_fit,
            "n_stoch": det.settings.n_stoch, "fit_max_adc": a.fit_max_adc, "fit_quiet_mev": a.fit_quiet_mev,
+           "optics_table": "optics_table" in params,
            "L2": {dt: {h["hist"]: {k: h[k] for k in ("chi2ndf", "ndf", "p", "flag")} for h in r["hists"]}
                   for dt, r in res["workflows"]["D1-L2"].items()}}
     (a.out / "record.json").write_text(json.dumps(rec, indent=1, default=float))

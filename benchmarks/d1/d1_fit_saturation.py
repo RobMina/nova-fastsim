@@ -80,7 +80,7 @@ def main(argv=None) -> int:
     g = det.geometry
     lay = layout(det, jax.numpy.float64)
     geo = {"z": np.asarray(lay.z_lo) + 0.5 * g.cell_depth, "view": np.asarray(lay.view),
-           "wc": np.asarray(lay.w_centre), "length": g.cell_length, "readout": g.readout_end}
+           "wc": np.asarray(lay.w_centre), "length": 2.0 * np.asarray(lay.half_len), "readout": g.readout_end}
 
     # ---- optics (level-2 fit with the ADC cut), as d1_l2.py --fit-max-adc does
     st_train, parts = L2.load(a, "train")

@@ -28,8 +28,9 @@ class Pieces(NamedTuple):
     length: object     # scintillator path length, cm
     t_mid: object      # segment parameter at the middle of the overlap
     distance: object   # distance along the cell from the overlap middle to the readout end, cm
-    len_box: object    # [S] path length inside the detector envelope, cm
+    len_box: object    # [S] path length inside the plane mixture (the region boxes), cm
     overflow: object   # [S] True if the segment did not fit its windows
+    len_abs: object    # [S] path length inside absorber boxes, cm
 
 
 def slab(x0, dx, lo, hi):
@@ -56,6 +57,7 @@ class Layout(NamedTuple):
     u_width: object
     plane_edges: object
     cell_edges: object
+    half_len: object   # [P] half cell length per plane
 
 
 def layout(det: Detector, dtype=jnp.float32) -> Layout:
@@ -72,18 +74,41 @@ def layout(det: Detector, dtype=jnp.float32) -> Layout:
         mid_c = 0.5 * (cu[:, 1:] + cu[:, :-1])
         ce = jnp.concatenate([cu[:, :1] - 0.5 * cw[:, :1] - 0.5 * g.web, mid_c,
                               cu[:, -1:] + 0.5 * cw[:, -1:] + 0.5 * g.web], axis=1)
-        return Layout(pz - 0.5 * g.cell_depth, view, wc, cu - 0.5 * cw, cw, pe, ce)
+        hl = 0.5 * jnp.asarray(g.lengths(), dtype)
+        return Layout(pz - 0.5 * g.cell_depth, view, wc, cu - 0.5 * cw, cw, pe, ce, hl)
     p = jnp.arange(P)
     pp, cp, h = g.plane_pitch, g.cell_pitch, g.half_width
     z_lo = (g.z_front + p * pp + g.face).astype(dtype)
     u_lo = jnp.broadcast_to((-h + jnp.arange(C) * cp + 0.5 * g.web).astype(dtype), (P, C))
     pe = (g.z_front + jnp.arange(P + 1) * pp).astype(dtype)
     ce = jnp.broadcast_to((-h + jnp.arange(C + 1) * cp).astype(dtype), (P, C + 1))
-    return Layout(z_lo, (p + g.first_view) % 2, jnp.zeros(P, dtype), u_lo, jnp.full((P, C), g.cell_width, dtype), pe, ce)
+    return Layout(z_lo, (p + g.first_view) % 2, jnp.zeros(P, dtype), u_lo, jnp.full((P, C), g.cell_width, dtype), pe, ce,
+                  jnp.full(P, 0.5 * g.cell_length, dtype))
+
+
+def box_intervals(boxes, p0, d):
+    """Parameter intervals ``(t0, t1)`` ``[..., K]`` of ``p0 + t d`` inside each box (x0, x1, y0, y1, z0, z1); empty
+    when ``t0 > t1``; no clipping."""
+    if not boxes:
+        z = jnp.zeros(p0.shape[:-1] + (0,), p0.dtype)
+        return z, z
+    b = jnp.asarray(boxes, p0.dtype)                                         # [K, 6]
+    x0, x1 = slab(p0[..., 0:1], d[..., 0:1], b[:, 0], b[:, 1])
+    y0, y1 = slab(p0[..., 1:2], d[..., 1:2], b[:, 2], b[:, 3])
+    z0, z1 = slab(p0[..., 2:3], d[..., 2:3], b[:, 4], b[:, 5])
+    return jnp.maximum(jnp.maximum(x0, y0), z0), jnp.minimum(jnp.minimum(x1, y1), z1)
+
+
+def length_in(boxes, p0, d, lo, hi):
+    """Summed parameter length of ``p0 + t d`` inside the (non-overlapping) boxes for ``t`` in ``[lo, hi]``."""
+    t0, t1 = box_intervals(boxes, p0, d)
+    lo, hi = jnp.asarray(lo)[..., None], jnp.asarray(hi)[..., None]
+    return jnp.sum(jnp.maximum(jnp.minimum(t1, hi) - jnp.maximum(t0, lo), 0.0), axis=-1)
 
 
 def box_interval(det: Detector, p0, d):
-    """Parameter interval of ``p0 + t d`` inside the detector envelope (no clipping to [0, 1])."""
+    """Parameter interval of ``p0 + t d`` inside the detector envelope (no clipping to [0, 1]); the envelope of the
+    default single region (see :func:`length_in` for region and absorber boxes)."""
     g = det.geometry
     h = g.half_width
     x0, x1 = slab(p0[..., 0], d[..., 0], -h, h)
@@ -103,12 +128,11 @@ def pieces(det: Detector, p0, p1) -> Pieces:
     g = det.geometry
     P, C, Kp, Kc = g.n_planes, g.n_cells, det.plane_window, det.cell_window
     lay = layout(det, p0.dtype)
-    half_len = 0.5 * g.cell_length
     d = p1 - p0
     L = _norm(d)
 
-    b0, b1 = box_interval(det, p0, d)
-    len_box = jnp.maximum(jnp.minimum(b1, 1.0) - jnp.maximum(b0, 0.0), 0.0) * L
+    len_box = length_in(g.region_boxes(), p0, d, 0.0, 1.0) * L
+    len_abs = length_in(g.absorbers, p0, d, 0.0, 1.0) * L
 
     z_a, z_b = jax.lax.stop_gradient(jnp.minimum(p0[:, 2], p1[:, 2])), jax.lax.stop_gradient(
         jnp.maximum(p0[:, 2], p1[:, 2]))
@@ -129,6 +153,7 @@ def pieces(det: Detector, p0, p1) -> Pieces:
     w0 = jnp.where(is_x, p0[:, None, 1], p0[:, None, 0])
     dw = jnp.where(is_x, d[:, None, 1], d[:, None, 0])
     wc = lay.w_centre[pc]
+    half_len = lay.half_len[pc]                                            # [S, Kp]
     tw0, tw1 = slab(w0, dw, wc - half_len, wc + half_len)
     ta = jnp.maximum(jnp.maximum(tz0, tw0), 0.0)
     tb = jnp.minimum(jnp.minimum(tz1, tw1), 1.0)
@@ -156,12 +181,13 @@ def pieces(det: Detector, p0, p1) -> Pieces:
     t_mid = jnp.where(length > 0, 0.5 * (t0 + t1), 0.0)
     w_mid = w0[..., None] + t_mid * dw[..., None]
     sign = jnp.where(is_x, g.readout_end[0], g.readout_end[1])[..., None]
-    distance = jnp.clip(half_len - sign * (w_mid - wc[..., None]), 0.0, 2.0 * half_len)
+    hl = half_len[..., None]
+    distance = jnp.clip(hl - sign * (w_mid - wc[..., None]), 0.0, 2.0 * hl)
 
     index = pc[..., None] * C + cc
     S = p0.shape[0]
     flat = lambda a: a.reshape(S, Kp * Kc)
-    return Pieces(flat(index), flat(length), flat(t_mid), flat(distance), len_box, ovf_p | ovf_c)
+    return Pieces(flat(index), flat(length), flat(t_mid), flat(distance), len_box, ovf_p | ovf_c, len_abs)
 
 
 def cell_centres(det: Detector, dtype=jnp.float32):
@@ -172,9 +198,12 @@ def cell_centres(det: Detector, dtype=jnp.float32):
 
 def readout_distance(det: Detector, view, w, plane=None, dtype=jnp.float32):
     """Distance (cm) along the cell from long-axis position ``w`` to the readout end, for planes of ``view``
-    (``plane`` selects each plane's own long-axis centre in a tabulated geometry)."""
+    (``plane`` selects each plane's own long-axis centre and cell length in a tabulated geometry)."""
     g = det.geometry
-    half = 0.5 * g.cell_length
-    wc = 0.0 if plane is None else layout(det, dtype).w_centre[plane]
+    if plane is None:
+        half, wc = 0.5 * g.cell_length, 0.0
+    else:
+        lay = layout(det, dtype)
+        half, wc = lay.half_len[plane], lay.w_centre[plane]
     sign = jnp.where(view == 0, g.readout_end[0], g.readout_end[1])
     return jnp.clip(half - sign * (w - wc), 0.0, 2.0 * half)
