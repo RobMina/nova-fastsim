@@ -43,7 +43,8 @@ event quantities         E, θ, Eθ²
 
 Everything has fixed shapes, so one event is one `jit` call and a batch is `vmap` over a leading axis
 (`expected_batch`, `sampled_batch`). `expected` is deterministic; `sampled` draws around it and its mean is the
-expected response (tested). Fits use the expected response with a Poisson likelihood (or the hit probability as a
+expected response (tested). With `Settings.n_stoch > 0`, `sampled` also draws the showers' deposits
+(`sampled_deposits`, the stochastic tier). Fits use the expected response with a Poisson likelihood (or the hit probability as a
 detection term) and never differentiate the sampled chain, following the hep-simlib calibration design.
 
 ## Models
@@ -52,12 +53,13 @@ detection term) and never differentiate the sampled chain, following the hep-sim
 |---|---|---|
 | Geometry | planes of extruded cells, views alternating; scintillator interior `cell_width × cell_depth`, inert webs and faces; path length = overlap of three parameter intervals | segment endpoints (piecewise linear: kinks where an endpoint crosses a wall) |
 | Tracks (μ, π, K, p) | straight line; mean CSDA loss from a Bethe + Sternheimer table in scintillator-equivalent column density (`rho_stop`); no multiple scattering, no hadronic interactions, no radiative loss | vertex, direction, energy, `rho_stop` |
-| EM showers (e±, γ) | gamma longitudinal profile, t_max = ln(E/E_c) ∓ 0.5 (Longo–Sestili form); two-component radial profile of the Grindhammer–Peters form in Molière radii; fixed quadrature (`n_long × 2 n_rad × n_phi` short segments along the axis) | vertex, direction, energy, `x0`, `ec`, `rm`, `shower_b`, `z_eff` |
-| Energy sharing | a segment's energy is shared over the materials it crosses in proportion to density × relative stopping power | `rho_*`, `stop_inert` |
+| EM showers (e±, γ) | gamma longitudinal profile, t_max = ln(E/E_c) ∓ 0.5 + `shower_tmax_shift` (Longo–Sestili form); electrons add an on-axis ionisation head of E_c per X0 over the first `head_x0` X0, taken from the shower energy; two-component radial profile of the Grindhammer–Peters form in Molière radii, widths scaled by `lat_core` and `lat_tail` and the core fraction by `lat_pcore`; fixed quadrature (`n_long × 2 n_rad × n_phi` short segments along the axis). The extras are neutral at their defaults (0, 0, 1, 1, 1) | vertex, direction, energy, `x0`, `ec`, `rm`, `shower_b`, `z_eff`, the extras |
+| Stochastic deposit tier (sampled path, `Settings.n_stoch > 0`) | each shower's maximum shifted by `stoch_tmax_sigma` X0 × a standard normal; the fraction `stoch_frac` of its energy in up to `n_stoch` straight charged-track pieces of length `stoch_len` at `stoch_dedx` MeV/cm (the track-length picture of a low-Z shower: cells crossed by tracks, not a thin haze), centred by inverse-CDF draws from the mean profile and tilted from the axis by a Rayleigh angle of scale `stoch_theta`; the rest stays in the mean shower. Pieces quench with their own dE/dx. Every draw conserves energy; the mean of draws follows the expected shower (tested). Off by default: `sampled` then uses the expected deposits | every parameter at fixed random numbers (reparameterised draws) |
+| Energy sharing | a segment's energy is shared over the materials it crosses in proportion to density × relative stopping power; shower segments scale the inert ratio by `shower_inert_scale` (low-energy shower particles favour a higher-Z inert material) | `rho_*`, `stop_inert`, `shower_inert_scale` |
 | Quenching (scint-fibre-fastsim) | Birks–Chou with `optics.birks_kb`, `optics.birks_kc`; tracks use their own dE/dx, shower segments `shower_dedx` | all three |
 | Fibre (scint-fibre-fastsim) | looped fibre, both ends on one pixel: half the light travels `d`, half `fibre_length − d`; two-exponential attenuation; light-weighted delay. Or a `CellTable` (`params["optics_table"]`): collection and delay vs distance, interpolated | analytic: `optics.*`, along-cell position; table: table values, `optics.yield_per_mev`, position |
 | Channel efficiency | optional `channel_eff [P, C]` multiplies the light | each channel |
-| APD + front end (scint-fibre-fastsim) | QE; unit-peak CR-RC shaper, samples every `tick`, dual-correlated sampling with `dcs_lag`; expected DCS peak; hit probability = average over the charge fluctuation (gamma-shaped, variance F·PE; Gauss–Hermite through Wilson–Hilferty) of P(any DCS sample > threshold) with per-sample noise. Agrees with the sampled hit rate within 0.03 near threshold | `apd.*`, hit time |
+| APD + front end (scint-fibre-fastsim) | QE; unit-peak CR-RC shaper, samples every `tick`, dual-correlated sampling with `dcs_lag`; expected DCS peak; hit probability = average over the charge fluctuation (gamma-shaped, variance F·PE; Gauss–Hermite through Wilson–Hilferty) of P(any DCS sample > threshold) with per-sample noise. Agrees with the sampled hit rate within 0.03 near threshold. Optional ADC ceiling (`apd.adc_max`, spread `apd.adc_max_sigma`; none by default): the recorded ADC is capped, a saturated hit's charge grows as `apd.sat_recovery` × ln(peak / ceiling), and the expected ADC is E[min(ADC, ceiling)]. Optional board crosstalk (`Settings.apd_group` cells of a plane per APD / front-end board, `apd.crosstalk`; off by default): each channel's charge is reduced by `apd.crosstalk` times the summed charge of the other channels on its board | `apd.*`, hit time |
 | Reco | per view weighted regression of u on z → direction; each view's cells attenuation-corrected at the other view's centroid → visible energy; `reco_scale` | the charges, hence everything above |
 
 ## Detector description
@@ -70,8 +72,14 @@ collaboration's geometry, materials or calibration. The private inputs bundle pr
 ```json
 {"geometry": {"n_planes": 192, "n_cells": 96, "cell_width": 3.9, "readout_end": [1, 1]},
  "settings": {"n_long": 64},
+ "materials": {"inert": {"density": 1.4, "x0": 24.0}},
  "params": {"optics.yield_per_mev": 11.8, "optics.atten_long": 7000.0, "apd.threshold_pe": 10.0}}
 ```
+
+`materials` overrides fields of the scintillator and inert materials (density g/cm³, `x0` g/cm², `ec` MeV,
+`stopping` MeV cm²/g); `x0`, `ec`, `rm`, `rho_*`, `stop_inert` and `rho_stop` are derived from them and the
+geometry's scintillator fraction, and `params` can still override any of them. A tabulated description
+(`config.load_description`) fills `materials` from its per-material density and radiation length.
 
 `config.load(path)` fails closed on unknown keys. `python -m novafastsim_detsim describe [--config F]` prints the
 resolved description.
@@ -84,6 +92,7 @@ resolved description.
 | Energy closure: contained track = kinetic energy; contained shower = kinetic energy; scintillator + inert = total | pytest |
 | Shower depth: mean depth = (a/b) X0; photon − electron = 1 X0 | pytest |
 | Sampled mean = expected (PE); sampled hit rate = Σ hit probability | pytest |
+| Stochastic tier: energy closure per draw (f32, f64); mean of draws = expected profile; clumpier cells; depth spread from `stoch_tmax_sigma`; gradients at fixed keys | pytest |
 | float32 vs float64 | pytest (PE to 1e-3) |
 | Autodiff vs central differences: kinematics, response parameters, shower parameters | pytest (hepsimlib.testing) |
 | Calibration closure: light yield and long attenuation from Poisson-sampled muons (hepsimlib.fit) | pytest |

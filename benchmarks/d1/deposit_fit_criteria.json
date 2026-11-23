@@ -1,0 +1,57 @@
+{
+  "comment": "D1 deposit-model study (study D-fit), declared 2026-11-22 before the fit was run and before any test-chunk comparison of the extended model. Honesty note: the extensions (electron head, shower-maximum shift, lateral core/tail/fraction scales, shower inert-stopping scale) were chosen after seeing the level-1 test-chunk residuals of the original model (too little energy at the start of the longitudinal profile, a lateral core too wide and tails too heavy, a scintillator fraction slightly high), so the test score below checks the fitted model on unseen events but is not a blind validation of the model choice. The same change also derives X0, the Moliere radius and the track stopping column density from the description's materials (density, radiation length) instead of the package's default PVC. The sha256 of this file goes into the fit record and into every record scored with the fitted parameters.",
+  "model": {
+    "head_x0": "electrons: on-axis ionisation of E_c per X0 over the first head_x0 radiation lengths, taken from the shower energy (at most half of it)",
+    "shower_tmax_shift": "X0 added to the gamma-profile maximum",
+    "shower_b": "gamma-profile slope (already a parameter)",
+    "lat_core": "scale of the Grindhammer-Peters core radius",
+    "lat_tail": "scale of the tail radius",
+    "lat_pcore": "scale of the core energy fraction (clipped to [0, 1])",
+    "shower_inert_scale": "shower particles' inert-to-scintillator stopping ratio relative to the minimum-ionisation ratio (low-energy shower particles favour the TiO2-loaded PVC)",
+    "neutral_defaults": "0, 0, 0.5, 1, 1, 1, 1: the original model"
+  },
+  "fit": {
+    "events": "train chunks 0-9 only, selected as in criteria.json; a fixed stride subset of at most 2500 events",
+    "precision": "float64",
+    "observables": "per-event means of: Edep per plane / E_true for planes 0-119 after the vertex plane; Edep against |cell - energy-weighted mean cell| per view, 0-29 cells with linear (triangle) soft binning in both arms; scintillator Edep / E_true",
+    "residuals": "(detsim mean - stock mean) / sqrt(se_stock^2 + se_detsim^2), the event-to-event standard errors of both arms (detsim's taken at the neutral start point and then held fixed), as the scored profiles combine them",
+    "amendment": "2026-11-22, after a 100-event smoke run on train chunk 0 and before the full fit or any test comparison: the residual error was the stock standard error alone, which is near zero in deep-tail bins where one or two stock events deposit; those bins dominated chi2 and drove the fit to a bound. Changed to the combined error above.",
+    "method": "scipy least_squares (trust region, bounds) with the Jacobian from jax.jacfwd through the detector simulation",
+    "bounds": {
+      "head_x0": [
+        0,
+        3
+      ],
+      "shower_tmax_shift": [
+        -2,
+        2
+      ],
+      "shower_b": [
+        0.2,
+        1.2
+      ],
+      "lat_core": [
+        0.2,
+        3
+      ],
+      "lat_tail": [
+        0.2,
+        3
+      ],
+      "lat_pcore": [
+        0.3,
+        2
+      ],
+      "shower_inert_scale": [
+        0.5,
+        2
+      ]
+    }
+  },
+  "test": {
+    "what": "levels 1 and 2 of criteria.json rerun on test chunks 10-19 with the fitted deposit parameters (level 2 refits its optics on train first, as declared there); same histograms, statistics and flag rule",
+    "pass_lines": "as criteria.json: every L1 histogram unflagged in both floats for deposits_validated; every L2 histogram unflagged for response_validated",
+    "expectation_stated_in_advance": "the mean-shower model cannot reproduce shower-to-shower fluctuations, so ncells (cells above 0.5 MeV) and the L2 hit-count and hit-PE histograms are expected to stay flagged; the profiles and escint_frac are the ones this study can fix"
+  },
+  "redaction": "2026-11-22: numbers from the stock (collaboration) simulation removed from the text for the public repository; the declarations are unchanged. Fits and scores run before this edit carry the earlier sha256 6c9612c4dbd008e0a39b9488cd5a46b41c9c2002df5dcdd7f6865a2880cbae9f."
+}

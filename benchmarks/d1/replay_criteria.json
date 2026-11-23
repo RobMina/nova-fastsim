@@ -1,0 +1,19 @@
+{
+  "comment": "D1 stock-deposit replay (study M0), declared 2026-11-22 before any replay output existed. The stock deposits of each event (D1HitDump FLS hits: one straight piece per particle per cell, entry and exit points in the cell's local frame) are converted to world Segments with the private ND description and run through detsim's cell response and front end, so deposit-model and response-model errors separate. The record carries this file's sha256.",
+  "frame": {
+    "local_axes": "local X across the cell width, local Y through the cell depth, local Z along the cell length, origin at the cell centre (as the coordinate ranges in the dump show)",
+    "world": "u = u_cell + s_u X, z = z_plane + s_z Y, w = long_centre + s_w Z; view 0: (x, y) = (u, w), view 1: (x, y) = (w, u)",
+    "sign_fit": "per view, the (s_u, s_z, s_w) of the 8 combinations that minimises the median distance, over each event's earliest deposits of pdg 11 within 30 cm of the vertex along the electron direction, between the deposit midpoint and the electron's straight line (train chunks 0-9); recorded with the table of all 8"
+  },
+  "segments": "one TRACK segment per FLS hit from the world entry to the world exit point, energy Edep, time the dump's midpoint time; a piece shorter than 1e-4 cm is given 2e-3 cm along the cell length so it lies inside its cell",
+  "closure": {
+    "what": "test chunks 10-19, selected events as criteria.json: per event, the fraction of the replayed scintillator energy that lands in the stock deposit's own cell, and the replayed / stock total scintillator energy",
+    "pass": "median own-cell fraction above 0.99 and the median total ratio within 1 % of 1"
+  },
+  "L2_replay": {
+    "what": "level 2 of criteria.json on test chunks 10-19 with the replayed stock deposits instead of detsim's deposit model: the chain's front end (chain_criteria.json: final saturation and crosstalk fits, optics fit with --fit-max-adc 3000 --fit-quiet-mev 20 on train), one sampled readout per event, both floats; same histograms, statistics and flag rule",
+    "reading": "flags that remain here are front-end (light, threshold, saturation, crosstalk, quenching) differences; flags that disappear relative to the chain's L2 run are deposit-model differences",
+    "quenching_note": "replayed pieces quench with their straight-line dE/dx (Edep over the entry-exit distance), not stock's EdepBirks; the replayed Birks ratio is reported against stock's"
+  },
+  "redaction": "2026-11-22: cell dimensions from the collaboration geometry removed from the text for the public repository; the declarations are unchanged. The signs, closure and L2-replay runs made before this edit carry the earlier sha256 b15e1ae4a9323499e151a39928f51cfc7fd098ab1862ac511b24ba45d93a6039."
+}

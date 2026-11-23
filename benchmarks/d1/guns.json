@@ -1,0 +1,20 @@
+{
+  "comment": "D1 muon/hadron arms, gun samples (synthetic single particles; nothing collaboration-internal). Read by make_guns.py. One HEPEVT chunk per job, flat index 0..79; per species the first half of its chunks is train, the second half test. Declared 2026-11-22 before any stock or detsim output of these samples existed.",
+  "events_per_chunk": 1000,
+  "vertex_box_cm": {"x": [-150.0, 150.0], "y": [-150.0, 150.0], "z": [50.0, 1000.0]},
+  "direction": "cos(theta) to +z uniform in [0.2, 1.0], phi uniform",
+  "cos_theta": [0.2, 1.0],
+  "time_ns": [221000.0, 230500.0],
+  "time_comment": "uniform over the span of the electron replay times, so the readout window treats both alike",
+  "energy": "kinetic energy log-uniform per species, GeV",
+  "species": [
+    {"name": "mu",    "pdg": [13, -13],   "chunks": 20, "t_kin_gev": [0.1, 2.5]},
+    {"name": "pi",    "pdg": [211, -211], "chunks": 20, "t_kin_gev": [0.1, 3.0]},
+    {"name": "p",     "pdg": [2212],      "chunks": 10, "t_kin_gev": [0.05, 1.5]},
+    {"name": "n",     "pdg": [2112],      "chunks": 10, "t_kin_gev": [0.05, 1.0]},
+    {"name": "pi0",   "pdg": [111],       "chunks": 10, "t_kin_gev": [0.1, 3.0]},
+    {"name": "gamma", "pdg": [22],        "chunks": 10, "t_kin_gev": [0.1, 3.0]}
+  ],
+  "charge_split": "for two pdg codes, each event draws one with probability 1/2",
+  "seed": 20261122
+}

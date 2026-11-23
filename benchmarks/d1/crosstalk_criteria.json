@@ -1,0 +1,16 @@
+{
+  "comment": "D1 front-end crosstalk study (study X1), declared 2026-11-22 before its fit ran and before any test-chunk comparison of it. Starting point: the deposit, stochastic and saturation fits (held fixed). Motivation, from a train-chunk diagnostic (stock deposits joined to stock hits, cell by cell): the stock hit efficiency of a cell at fixed visible energy falls steeply with the activity of the other cells on the same 32-cell front-end board of its plane, the recorded charge of the surviving hits falls with it, and the loss follows the summed energy of the other cells more than their number; detsim had no such coupling, which made its threshold edge too sharp and too populated. Model: scint-fibre-fastsim nova_apd crosstalk (APDParams.crosstalk, groups of Settings.apd_group cells per plane): each channel's charge is reduced by crosstalk times the summed charge of the other channels in its group. The record carries this file's sha256.",
+  "settings": {"apd_group": 32},
+  "fit_on_train": {
+    "param": "apd.crosstalk",
+    "bounds": [0.0, 0.05],
+    "observable": "per-cell probability of a signal hit for cells with visible energy in [1.5, 3), [3, 6) and [6, 12) MeV, in bins of the summed visible energy of the other cells of the same group in the same event, [0, 20), [20, 60), [60, 150), [150, 400), [400, 2000) MeV: 15 points. Stock: FLS EdepBirks per cell and stock signal hits (BackTracker true energy > 0); detsim: sampled-deposit visible energy per cell and the sampled readout's hits",
+    "objective": "chi2 = sum (eff_detsim - eff_stock)^2 / (var_stock + var_detsim), binomial variances, bins with at least 20 cells in both arms",
+    "method": "bounded scalar minimisation (scipy minimize_scalar, method bounded, xatol 2e-4) at a fixed seed",
+    "events": "train chunks 0-9, a fixed stride subset of at most 1000 events, float64"
+  },
+  "test": {
+    "L2": "level 2 of criteria.json on test chunks 10-19 with all four fits applied, --fit-max-adc 3000; same histograms, statistics and flag rule, both floats",
+    "expectation_stated_in_advance": "the hit_pe threshold edge and nsig_hits should move most; whether any histogram drops below the flag line is open"
+  }
+}
