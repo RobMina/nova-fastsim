@@ -1,0 +1,13 @@
+{
+  "comment": "D1 consistent front-end chain (study X2), declared 2026-11-22 before its fits ran and before its test run. Honesty note: the quiet-board optics cut was tried once post hoc on the test chunks (study X1's labelled diagnostic), so this run is a consistent re-declaration, not a blind test. The deposit fit and the stochastic tier are held fixed. The chain record carries this file's sha256 and the sha256 of every fit file it produced.",
+  "optics": "the level-2 optics fit of criteria.json on train stock signal hits with ADC below 3000 and whose front-end board's other cells (32 cells of the plane) hold less than 20 MeV of FLS Birks energy in the event, so that neither saturation nor crosstalk enters the light yield; d1_l2.py --fit-max-adc 3000 --fit-quiet-mev 20 applies the same cuts in the test run",
+  "iteration": {
+    "steps": "round k: the saturation fit of saturation_criteria.json (adc_per_pe, ceiling, sat_recovery) with the optics above and the crosstalk of round k-1 (round 1 starts from study X1's 0.0219), then the crosstalk fit of crosstalk_criteria.json with that saturation and the optics above",
+    "stop": "after the first round in which sat_recovery and crosstalk both change by less than 1 % relative to the previous round, or after 4 rounds (the last round is used and the non-convergence is recorded)",
+    "events_and_seeds": "as in the two criteria files (train chunks 0-9 only)"
+  },
+  "test": {
+    "L2": "level 2 of criteria.json on test chunks 10-19 with the deposit, stochastic, final saturation and final crosstalk fits, --fit-max-adc 3000 --fit-quiet-mev 20; same histograms, statistics and flag rule, both floats",
+    "expectation_stated_in_advance": "close to the X1 post-hoc diagnostic; whether any histogram drops below the flag line is open"
+  }
+}

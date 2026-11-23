@@ -15,7 +15,7 @@ from scintfibrefastsim.response import fibre_transport
 
 from . import config
 from .config import Detector
-from .geometry import cell_centres
+from .geometry import cell_centres, readout_distance
 
 
 class ViewFit(NamedTuple):
@@ -27,17 +27,17 @@ class ViewFit(NamedTuple):
 
 def view_fits(det: Detector, w):
     """Weighted linear regression of u on z in each view: ``(x_view, y_view)``."""
-    u, z, view = cell_centres(det)
+    u, z, view = cell_centres(det, w.dtype)                                   # u [P, C]
     out = []
     for v in (0, 1):
         wv = w * (view == v)[:, None]
         W = jnp.sum(wv)
         Ws = jnp.where(W > 0, W, 1.0)
         zm = jnp.sum(wv * z[:, None]) / Ws
-        um = jnp.sum(wv * u[None, :]) / Ws
+        um = jnp.sum(wv * u) / Ws
         dz = z[:, None] - zm
         szz = jnp.sum(wv * dz * dz)
-        szu = jnp.sum(wv * dz * (u[None, :] - um))
+        szu = jnp.sum(wv * dz * (u - um))
         slope = jnp.where(szz > 0, szu / jnp.where(szz > 0, szz, 1.0), 0.0)
         out.append(ViewFit(um, zm, slope, W))
     return tuple(out)
@@ -61,11 +61,10 @@ def visible_energy(det: Detector, params, q):
     """Attenuation-corrected visible energy (MeV) of read-out charges ``q`` (PE): each view's cells are corrected
     at the other view's charge-weighted centroid."""
     g = det.geometry
-    _, _, view = cell_centres(det)
+    _, _, view = cell_centres(det, q.dtype)
     fx, fy = view_fits(det, q)
     w_along = jnp.where(view == 0, fy.centre, fx.centre)                        # [P]
-    sign = jnp.where(view == 0, g.readout_end[0], g.readout_end[1])
-    dist = jnp.clip(g.half_width - sign * w_along, 0.0, 2.0 * g.half_width)
+    dist = readout_distance(det, view, w_along, jnp.arange(g.n_planes), q.dtype)
     opt = config.optics(params)
     collect, _ = fibre_transport(dist * 10.0, g.cell(), opt)
     pe_per_mev = opt.yield_per_mev * params["apd.qe"]

@@ -1,0 +1,64 @@
+{
+  "comment": "D1 stochastic deposit tier (study D3), declared 2026-11-22 before any of its fits ran and before any test-chunk comparison of it. Starting point: the deposit-model fit of deposit_fit_criteria.json (its fitted values held fixed). Motivation, seen on test chunks earlier (so the model choice is not blind): stock hits are fewer and much brighter than the mean shower's, and stock's effective readout threshold is well above detsim's default. The record of every fit and score carries this file's sha256.",
+  "model": {
+    "what": "with Settings.n_stoch > 0 the sampled path draws each shower: the fraction stoch_frac of its energy goes into n_stoch-capped straight charged-track pieces of length stoch_len at stoch_dedx MeV/cm, centred by inverse-CDF draws from the mean shower's longitudinal and radial profile and tilted from the axis by a Rayleigh angle of scale stoch_theta; the rest stays in the mean shower; each shower's maximum is shifted by stoch_tmax_sigma X0 times a standard normal. Pieces quench with their own dE/dx and use the minimum-ionisation inert stopping. Differentiable in every parameter at fixed random numbers. The expected (mean) path is unchanged.",
+    "settings": {
+      "n_stoch": 256
+    },
+    "fixed": {
+      "stoch_dedx": "minimum ionisation in the mixture (rho_stop x scintillator stopping), not fitted"
+    }
+  },
+  "fits_on_train": {
+    "order": [
+      "threshold",
+      "stochastic",
+      "birks"
+    ],
+    "threshold": "apd.threshold_pe = the 0.1 % quantile of the train chunks' stock signal-hit PE, rounded to 0.1 PE",
+    "stochastic": {
+      "params": [
+        "stoch_frac",
+        "stoch_len",
+        "stoch_theta",
+        "stoch_tmax_sigma"
+      ],
+      "bounds": {
+        "stoch_frac": [
+          0.0,
+          1.0
+        ],
+        "stoch_len": [
+          1.0,
+          14.0
+        ],
+        "stoch_theta": [
+          0.05,
+          1.5
+        ],
+        "stoch_tmax_sigma": [
+          0.0,
+          2.0
+        ]
+      },
+      "start": {
+        "stoch_frac": 0.5,
+        "stoch_len": 8.0,
+        "stoch_theta": 0.5,
+        "stoch_tmax_sigma": 0.3
+      },
+      "events": "train chunks 0-9, the same stride subset rule as the deposit fit (at most 2500 events), float64, one draw per event with fixed keys (common random numbers across evaluations)",
+      "observables": "per-event means of: cells per event against log10(cell Edep / MeV) over [-1, 2] in 30 bins with linear soft binning; the deposit fit's longitudinal (120), lateral (30) and escint observables; the shower depth (Edep-weighted mean plane minus vertex plane) and its square",
+      "residuals": "(detsim mean - stock mean) / sqrt(se_stock^2 + se_detsim^2), detsim's spread taken at the start point and held fixed",
+      "method": "scipy least_squares (trust region, bounds) with the Jacobian from jax.jacfwd through the sampled deposits at fixed keys"
+    },
+    "birks": "shower_dedx (the mean shower's dE/dx for quenching) by a one-dimensional root find so the mean per-event EdepBirks / Edep of the sampled deposits on the train events equals stock's; bounds [0.5, 20] MeV/cm"
+  },
+  "test": {
+    "L1_sampled": "the five level-1 histograms of criteria.json on test chunks 10-19 with one draw of the stochastic deposits per event (fixed seed), both floats; the expected-response level 1 is reported alongside, not rescored as a pass line",
+    "L2": "level 2 of criteria.json on the test chunks: train optics fit as declared there, then the sampled readout, which now includes the stochastic deposits and the train threshold",
+    "pass_lines": "as criteria.json, per histogram, both floats",
+    "expectation_stated_in_advance": "ncells, hit_pe and nsig_hits should move most; whether any histogram drops below the flag line is open. No reco-level (L3) or overlay statement is made here"
+  },
+  "redaction": "2026-11-22: numbers from the stock (collaboration) simulation removed from the text for the public repository; the declarations are unchanged. Fits and scores run before this edit carry the earlier sha256 961ac056b0c349c9478ab5dfcb510842219f3391979e3d1f79155ea94f0b3fa7."
+}

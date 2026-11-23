@@ -1,0 +1,7 @@
+{
+  "comment": "D1 front end on replayed stock deposits, second declaration (study F1b), 2026-11-23, before its fit ran. Identical to frontend_replay_criteria.json (study F1) except for the light fit. Reason, seen on F1's test run (so this is not blind): F1's unconstrained non-negative fit set the 0 cm knot to zero (the first distance bin cannot separate it from the 20 cm knot), its yield was then normalised at the largest knot, and the 400 cm knot was pulled low where data are sparse. The record carries this file's sha256.",
+  "change_from_F1": {
+    "optics": "the collection table is constrained non-increasing in distance (light is only lost along the fibre): table values are cumulative non-negative increments from the far end, g_k = sum over j >= k of delta_j with delta_j >= 0, fitted by the same weighted non-negative least squares; the yield is the value at the 0 cm knot and the collection is normalised there"
+  },
+  "unchanged": "replay energy (EdepBirks, quenching off), events, cuts, knots every 20 cm, the saturation / crosstalk alternation and its stop rule, the kept parameters, and both declared tests (replay L2 and detsim L2 on test chunks 10-19, both floats, flag rule of criteria.json)"
+}

@@ -1,0 +1,53 @@
+{
+  "comment": "D1 singles arm: detsim against the stock NOvA ND simulation on the same HepEVT electrons. Declared 2026-11-21 after the 20-electron smoke test of the stock dump and before any detsim-vs-stock comparison was computed. Collaboration data (the stock arm and every result) stay private; this file and the code are public. The record carries this file's sha256.",
+  "sample": {
+    "electrons": "the S26-07-01 replay electrons (nu-on-e kinematics from the production overlay, spill-distributed times), chunks ovl_chunk_0000-0019, 1000 each",
+    "stock": "testrel_tfgnt (base S26-07-01): TextFileGenNT -> G4 + photon transport + readout (ovl_replay_gen.fcl) -> prod_ldm_full_nd_datamc_prod5p1 reco + CAF, with D1HitDump in the reco process",
+    "detsim": "novafastsim_detsim on the private ND description (nova-fastsim-inputs nova/detector/nd_S26-07-01.json), the same HepEVT rows through particles.from_hepevt, expected response and one sampled readout per event",
+    "event_selection": "vertex in the main detector, away from its faces: |x| < 170 cm, |y| < 170 cm, 20 cm < z < 1250 cm (detsim has no muon catcher yet), and true electron energy 0.1-10 GeV",
+    "split": "chunks 0-9 train (calibration fits only), chunks 10-19 test (every scored comparison)"
+  },
+  "levels": {
+    "L1_deposits": {
+      "what": "the deposit model and the ND geometry, independent of light and electronics",
+      "stock": "sim::FLSHit energies summed per (plane, cell): Edep and EdepBirks",
+      "detsim": "Response.edep and Response.evis (expected)",
+      "histograms": {
+        "escint_frac": "per event: scintillator Edep / E_true, 40 bins over [0, 1]",
+        "birks_ratio": "per event: EdepBirks / Edep, 40 bins over [0.9, 1.0]",
+        "ncells": "per event: cells with Edep > 0.5 MeV, 50 bins over [0, 500]",
+        "long_profile": "Edep summed over events against (plane - vertex plane) in units of planes, 0-120, normalised per event to E_true (values with errors from the event-to-event spread)",
+        "lat_profile": "Edep summed against |cell - energy-weighted mean cell of the event in that view|, 0-30 cells, same normalisation"
+      },
+      "fitted": "nothing"
+    },
+    "L2_response": {
+      "what": "light yield, attenuation, quenching and readout threshold in the ND",
+      "stock": "cell hits with BackTracker true energy > 0 (signal hits); hits without are noise and are reported separately, not scored (detsim has no noise hits)",
+      "detsim": "one sampled readout per event (Hits: pe, hit), with the train-fitted optics",
+      "fit_on_train": "optics.yield_per_mev, and frac_short / atten_short / atten_long, by least squares on the train chunks' profile of signal-hit PE per MeV of true Birks energy against distance to the readout (10 cm bins); APD and threshold parameters at their defaults",
+      "histograms": {
+        "nsig_hits": "per event: signal hits, 50 bins over [0, 500]",
+        "pe_per_mev_vs_dist": "signal-hit PE / true Birks MeV against distance to the readout, 0-400 cm in 20 cm bins (values with errors)",
+        "hit_pe": "signal-hit PE spectrum, 60 log bins over [5, 5000]",
+        "sig_pe_frac": "per event: total signal PE / E_true (PE per GeV), 50 bins over the train range"
+      }
+    },
+    "L3_reco": {
+      "what": "the stand-in reco against the collaboration reconstruction",
+      "stock": "LDMDump of the CAFs: calorimetric energy, shower direction, E theta^2 of the leading shower",
+      "detsim": "reco.energy and reco.theta2 on the sampled readout",
+      "status": "scored once LDMDump has run on the CAFs; same splits and statistics"
+    }
+  },
+  "statistics": {
+    "counts": "hep-simbench mode same_events (both arms on the same events): chi2 = sum (n1 - n2)^2 / (n1 + n2)",
+    "profiles": "hep-simbench values: errors from the event-to-event spread of each arm, combined",
+    "flag": "chi2/ndf > 2 and p < 1e-3 (no reseeded-stock floor exists for this sample)"
+  },
+  "pass_lines": {
+    "deposits_validated": "every L1 histogram unflagged in float32 and float64",
+    "response_validated": "every L2 histogram unflagged on the test chunks, in both floats",
+    "dtype_agreement": "float32 and float64 detsim give the same flags"
+  }
+}

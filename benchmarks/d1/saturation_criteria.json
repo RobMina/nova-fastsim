@@ -1,0 +1,18 @@
+{
+  "comment": "D1 front-end saturation study (study S1), declared 2026-11-22 before any of its fits ran and before any test-chunk comparison of it. Starting point: the deposit fit and the stochastic tier (their fitted values held fixed). Motivation, seen on test chunks earlier (so the model choice is not blind): detsim has hits far above the largest stock hit charge. The front-end model is scint-fibre-fastsim nova_apd's ADC ceiling (APDParams adc_max, adc_max_sigma, sat_recovery; no ceiling by default). The record of every fit and score carries this file's sha256.",
+  "model": "the DCS peak is capped at a per-hit ceiling M ~ N(adc_max, adc_max_sigma^2); the threshold uses the uncapped peak; a saturated hit's charge estimate is q_ceiling (1 + sat_recovery ln(peak / M)). adc_per_pe sets where the ceiling falls in charge.",
+  "stock_hits": "signal hits of the selected train events (BackTracker true energy > 0, main detector planes)",
+  "fits_on_train": {
+    "order": ["optics", "adc_per_pe", "ceiling", "sat_recovery"],
+    "optics": "the level-2 optics fit of criteria.json, but on stock hits with ADC below 3000 (below the ceiling's spread), so saturated hits do not pull the light yield; d1_l2.py --fit-max-adc 3000 applies the same cut in the test run",
+    "adc_per_pe": "so that the median ADC / charge of detsim signal hits with 100 < ADC < 3000 equals the median ADC / PE of stock signal hits in the same ADC range (detsim run once with adc_per_pe = 1 and no ceiling, then scaled)",
+    "ceiling": "adc_max = median ADC of stock signal hits with true Birks energy above 100 MeV; adc_max_sigma = half the 16-84 % range of the same ADCs",
+    "sat_recovery": "one-dimensional root find on [0, 1] so that the median charge of detsim signal hits with visible energy above 100 MeV equals the median PE of stock signal hits with true Birks energy above 100 MeV",
+    "events": "train chunks 0-9, a fixed stride subset of at most 1500 events, float64, sampled readout with a fixed seed"
+  },
+  "test": {
+    "L2": "level 2 of criteria.json on test chunks 10-19 with the three fits applied and the optics fit cut at ADC 3000; same histograms, statistics and flag rule, both floats",
+    "level_1": "not rerun: saturation is downstream of the deposits",
+    "expectation_stated_in_advance": "hit_pe should change most at its top end; pe_per_mev_vs_dist and sig_pe_frac can move through the optics cut; whether any histogram drops below the flag line is open"
+  }
+}
